@@ -38,12 +38,16 @@ fn app() -> AppResultU {
                     .alias("l")
                     .about("Load directory")
                     .arg(Arg::with_name("directory")
-                         .required(true)));
+                         .required(true)
+                         .min_values(1)));
 
     let matches = app.get_matches();
 
     if let Some(ref matches) = matches.subcommand_matches("load") {
-       command_load(matches.value_of("directory").unwrap())?; // Required
+        let directories: Vec<&str> = matches.values_of("directory").unwrap().collect();
+        for directory in directories {
+            command_load(directory)?;
+        }
     }
 
     Ok(())
