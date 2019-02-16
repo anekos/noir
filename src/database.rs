@@ -2,12 +2,17 @@
 use std::fs::create_dir_all;
 use std::path::Path;
 
+use chrono::DateTime;
+use chrono::offset::Utc;
 use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS};
 
 use crate::errors::{AppResult, AppResultU};
 use crate::meta::Meta;
 
+
+
+const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S";
 
 
 pub struct Database {
@@ -21,18 +26,24 @@ impl Database {
         Ok(())
     }
 
-    pub fn insert<T: AsRef<Path>>(&self, path: &T, meta: &Meta) -> AppResultU {
-        let path = path.as_ref().to_str().unwrap();
+    pub fn insert(&self, meta: &Meta) -> AppResultU {
+        fn from_datetime(t: &DateTime<Utc>) -> String {
+            t.format(DATETIME_FORMAT).to_string()
+        }
+
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
-            &path as &ToSql,
+            &meta.file.path as &ToSql,
             &meta.dimensions.width,
             &meta.dimensions.height,
             &width,
             &height,
             &meta.mime_type,
             &meta.animation,
-            &(meta.file_size as u32),
+            &(meta.file.size as u32),
+            &meta.file.created.as_ref().map(from_datetime),
+            &meta.file.modified.as_ref().map(from_datetime),
+            &meta.file.accessed.as_ref().map(from_datetime),
         ];
         self.connection.execute(include_str!("update.sql"), args)?;
         self.connection.execute(include_str!("insert.sql"), args)?;

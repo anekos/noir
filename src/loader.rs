@@ -21,7 +21,7 @@ pub fn load<T: AsRef<Path>, U: AsRef<Path>>(directory: &T, db: &U) -> AppResultU
             continue;
         }
         if let Ok(meta) = Meta::from_file(&path) {
-            db.insert(&path, &meta)?;
+            db.insert(&meta)?;
             println!("{} → {:?}", path.display(), meta);
         }
     }

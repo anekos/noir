@@ -1,9 +1,11 @@
 
 use std::path::Path;
 
+use chrono::DateTime;
+use chrono::offset::Utc;
 use immeta;
 
-use crate::errors::{AppError, AppResult};
+use crate::errors::{AppError, AppResult, from_os_str};
 
 
 
@@ -11,8 +13,8 @@ use crate::errors::{AppError, AppResult};
 pub struct Meta {
     pub animation: bool,
     pub dimensions: Dimensions,
-    pub file_size: u64,
     pub mime_type: &'static str,
+    pub file: FileMeta,
 }
 
 #[derive(Clone, Debug)]
@@ -21,11 +23,28 @@ pub struct Dimensions {
     pub width: u32,
 }
 
+#[derive(Clone, Debug)]
+pub struct FileMeta {
+    pub path: String,
+    pub size: u64,
+    pub created: Option<DateTime<Utc>>,
+    pub modified: Option<DateTime<Utc>>,
+    pub accessed: Option<DateTime<Utc>>,
+}
+
 
 
 impl Meta {
     pub fn from_file<T: AsRef<Path>>(file: &T) -> AppResult<Meta> {
-        from_file(file).map_err(|err| {
+        let file_meta = std::fs::metadata(file)?;
+        let file_meta = FileMeta {
+            path: from_os_str(file.as_ref().as_os_str())?.to_string(),
+            size: file_meta.len(),
+            created: file_meta.created().ok().map(DateTime::from),
+            modified: file_meta.modified().ok().map(DateTime::from),
+            accessed: file_meta.accessed().ok().map(DateTime::from),
+        };
+        from_file(file, file_meta).map_err(|err| {
             AppError::ImageLoading(err, format!("{:?}", file.as_ref()))
         })
     }
@@ -43,12 +62,10 @@ impl Dimensions {
     }
 }
 
-fn from_file<T: AsRef<Path>>(file: &T) -> Result<Meta, immeta::Error> {
+fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> Result<Meta, immeta::Error> {
     use immeta::GenericMetadata::*;
 
     const IMAGE_PREFIX: &str = "image/";
-
-    let file_size = std::fs::metadata(file)?.len();
 
     let meta = immeta::load_from_file(file)?;
     let dimensions = meta.dimensions();
@@ -69,7 +86,7 @@ fn from_file<T: AsRef<Path>>(file: &T) -> Result<Meta, immeta::Error> {
             height: dimensions.height,
             width: dimensions.width,
         },
-        file_size,
+        file: file_meta,
         mime_type,
     };
 
