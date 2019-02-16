@@ -11,7 +11,6 @@ use crate::errors::{AppError, AppResult};
 pub struct Meta {
     pub animation: bool,
     pub dimensions: Dimensions,
-    pub file_extension: Option<String>,
     pub file_size: u64,
     pub mime_type: &'static str,
 }
@@ -45,7 +44,6 @@ fn from_file<T: AsRef<Path>>(file: &T) -> Result<Meta, immeta::Error> {
 
     const IMAGE_PREFIX: &str = "image/";
 
-    let file_extension = file.as_ref().extension().map(|it| it.to_str().unwrap().to_string());
     let file_size = std::fs::metadata(file)?.len();
 
     let meta = immeta::load_from_file(file)?;
@@ -68,7 +66,6 @@ fn from_file<T: AsRef<Path>>(file: &T) -> Result<Meta, immeta::Error> {
             width: dimensions.width,
         },
         file_size,
-        file_extension,
         mime_type,
     };
 

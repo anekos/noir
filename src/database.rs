@@ -33,7 +33,6 @@ impl Database {
             &meta.mime_type,
             &meta.animation,
             &(meta.file_size as u32),
-            &meta.file_extension as &ToSql,
         ];
         self.connection.execute(include_str!("update.sql"), args)?;
         self.connection.execute(include_str!("insert.sql"), args)?;

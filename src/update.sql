@@ -5,6 +5,5 @@ SET width = ?2,
     ratio_height = ?5,
     mime_type = ?6,
     animation = ?7,
-    file_size = ?8,
-    file_extension = ?9
+    file_size = ?8
 WHERE path = ?1

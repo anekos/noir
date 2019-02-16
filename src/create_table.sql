@@ -6,6 +6,5 @@ CREATE TABLE IF NOT EXISTS images (
   ratio_height INTEGER,
   mime_type TEXT,
   animation BOOLEAN,
-  file_size INTEGER,
-  file_extension TEXT
+  file_size INTEGER
 );
