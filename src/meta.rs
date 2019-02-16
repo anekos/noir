@@ -35,7 +35,11 @@ impl Meta {
 impl Dimensions {
     pub fn ratio(&self) -> (u32, u32) {
         let divisor = gcd(self.width, self.height);
-        (self.width / divisor, self.height / divisor)
+        if divisor == 0 {
+            (0, 0)
+        } else {
+            (self.width / divisor, self.height / divisor)
+        }
     }
 }
 
