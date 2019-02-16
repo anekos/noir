@@ -2,8 +2,6 @@
 use std::fs::create_dir_all;
 use std::path::Path;
 
-use chrono::DateTime;
-use chrono::offset::Utc;
 use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS};
 
@@ -11,8 +9,6 @@ use crate::errors::{AppResult, AppResultU};
 use crate::meta::Meta;
 
 
-
-const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S";
 
 
 pub struct Database {
@@ -27,10 +23,6 @@ impl Database {
     }
 
     pub fn insert(&self, meta: &Meta) -> AppResultU {
-        fn from_datetime(t: &DateTime<Utc>) -> String {
-            t.format(DATETIME_FORMAT).to_string()
-        }
-
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
             &meta.file.path as &ToSql,
@@ -41,9 +33,9 @@ impl Database {
             &meta.mime_type,
             &meta.animation,
             &(meta.file.size as u32),
-            &meta.file.created.as_ref().map(from_datetime),
-            &meta.file.modified.as_ref().map(from_datetime),
-            &meta.file.accessed.as_ref().map(from_datetime),
+            &meta.file.created.as_ref(),
+            &meta.file.modified.as_ref(),
+            &meta.file.accessed.as_ref(),
         ];
         self.connection.execute(include_str!("update.sql"), args)?;
         self.connection.execute(include_str!("insert.sql"), args)?;
@@ -58,6 +50,34 @@ impl Database {
         create_table(&connection)?;
         connection.execute("BEGIN;", NO_PARAMS)?;
         Ok(Database { connection })
+    }
+
+    pub fn select(&self, where_expression: &str) -> AppResult<Vec<Meta>> {
+        use crate::meta::*;
+
+        let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
+        let iter = stmt.query_map(NO_PARAMS, |row| Meta {
+            animation: row.get(6),
+            dimensions: Dimensions {
+                width: row.get(1),
+                height: row.get(2),
+            },
+            mime_type: "hoge",
+            file: FileMeta {
+                path: row.get(0),
+                size: row.get(7),
+                created: row.get(8),
+                modified: row.get(9),
+                accessed: row.get(10),
+            },
+        })?;
+
+        for it in iter {
+            println!("{}", it?.file.path);
+        }
+
+        Ok(vec!())
+
     }
 }
 

@@ -26,7 +26,7 @@ pub struct Dimensions {
 #[derive(Clone, Debug)]
 pub struct FileMeta {
     pub path: String,
-    pub size: u64,
+    pub size: u32,
     pub created: Option<DateTime<Utc>>,
     pub modified: Option<DateTime<Utc>>,
     pub accessed: Option<DateTime<Utc>>,
@@ -39,7 +39,7 @@ impl Meta {
         let file_meta = std::fs::metadata(file)?;
         let file_meta = FileMeta {
             path: from_os_str(file.as_ref().as_os_str())?.to_string(),
-            size: file_meta.len(),
+            size: file_meta.len() as u32,
             created: file_meta.created().ok().map(DateTime::from),
             modified: file_meta.modified().ok().map(DateTime::from),
             accessed: file_meta.accessed().ok().map(DateTime::from),

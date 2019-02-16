@@ -9,10 +9,8 @@ use crate::database::Database;
 
 
 
-pub fn load<T: AsRef<Path>, U: AsRef<Path>>(directory: &T, db: &U) -> AppResultU {
+pub fn load<T: AsRef<Path>>(db: &Database, directory: &T) -> AppResultU {
     println!("Loading: {:?}", directory.as_ref());
-
-    let db = Database::open(db)?;
 
     for entry in WalkDir::new(directory) {
         let entry = entry?;
@@ -25,8 +23,6 @@ pub fn load<T: AsRef<Path>, U: AsRef<Path>>(directory: &T, db: &U) -> AppResultU
             println!("{} → {:?}", path.display(), meta);
         }
     }
-
-    db.close()?;
 
     Ok(())
 }
