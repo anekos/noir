@@ -1,4 +1,6 @@
 
+use std::ffi::OsStr;
+
 use failure::Fail;
 
 
@@ -20,6 +22,8 @@ pub enum AppError {
     Io(std::io::Error),
     #[fail(display = "Database error: {}", 0)]
     Sqlite(rusqlite::Error),
+    #[fail(display = "UTF-8 error")]
+    Utf8,
 }
 
 
@@ -37,3 +41,7 @@ define_error!(clap::Error, Clap);
 define_error!(rusqlite::Error, Sqlite);
 define_error!(std::io::Error, Io);
 define_error!(walkdir::Error, DirectoryWalking);
+
+pub fn from_os_str(s: &OsStr) -> AppResult<&str> {
+    s.to_str().ok_or(AppError::Utf8)
+}

@@ -3,7 +3,7 @@ use std::path::Path;
 
 use walkdir::WalkDir;
 
-use crate::errors::AppResultU;
+use crate::errors::{AppResult, AppResultU, from_os_str};
 use crate::meta::Meta;
 use crate::database::Database;
 
