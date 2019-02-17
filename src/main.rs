@@ -81,8 +81,9 @@ fn app() -> AppResultU {
         command_alias(&mut aliases, name, join(&expressions, None));
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let directories: Vec<&str> = matches.values_of("directory").unwrap().collect();
+        let loader = loader::Loader::default();
         for directory in directories {
-            command_load(&db, directory)?;
+            loader.load(&db, &directory)?;
         }
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
@@ -100,12 +101,6 @@ fn app() -> AppResultU {
 
 fn command_alias(aliases: &mut AliasTable, name: String, expression: String) {
     aliases.alias(name, expression);
-}
-
-fn command_load(db: &Database, directory: &str) -> AppResultU {
-    println!("Load directory: {}", directory);
-    crate::loader::load(&db, &directory)?;
-    Ok(())
 }
 
 fn command_select(db: &Database, expression: &str) -> AppResultU {

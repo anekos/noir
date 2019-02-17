@@ -9,22 +9,27 @@ use crate::database::Database;
 
 
 
-pub fn load<T: AsRef<Path>>(db: &Database, directory: &T) -> AppResultU {
-    println!("Loading: {:?}", directory.as_ref());
+#[derive(Default, Debug)]
+pub struct Loader();
 
-    for entry in WalkDir::new(directory) {
-        let entry = entry?;
-        let path = entry.path();
-        if entry.file_type().is_dir() || !has_image_extension(&path)? {
-            continue;
+
+impl Loader {
+    pub fn load<T: AsRef<Path>>(&self, db: &Database, directory: &T) -> AppResultU {
+        println!("Loading: {:?}", directory.as_ref());
+
+        for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if entry.file_type().is_dir() || !has_image_extension(&path)? {
+                continue;
+            }
+            if let Ok(meta) = Meta::from_file(&path) {
+                db.insert(&meta)?;
+                println!("{} → {:?}", path.display(), meta);
+            }
         }
-        if let Ok(meta) = Meta::from_file(&path) {
-            db.insert(&meta)?;
-            println!("{} → {:?}", path.display(), meta);
-        }
+
+        Ok(())
     }
-
-    Ok(())
 }
 
 fn has_image_extension<T: AsRef<Path>>(file: &T) -> AppResult<bool> {
