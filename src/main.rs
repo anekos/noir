@@ -44,8 +44,8 @@ fn app() -> AppResultU {
                          .min_values(1)))
         .subcommand(SubCommand::with_name("load")
                     .alias("l")
-                    .about("Load directory")
-                    .arg(Arg::with_name("directory")
+                    .about("Load directory or file")
+                    .arg(Arg::with_name("path")
                          .required(true)
                          .min_values(1)))
         .subcommand(SubCommand::with_name("select")
@@ -76,8 +76,8 @@ fn app() -> AppResultU {
         let expressions: Vec<&str> = matches.values_of("expression").unwrap().collect();
         command_alias(&mut aliases, name, join(&expressions, None));
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
-        let directories: Vec<&str> = matches.values_of("directory").unwrap().collect();
-        command_load(&db, &directories)?;
+        let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
+        command_load(&db, &paths)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
@@ -96,10 +96,10 @@ fn command_alias(aliases: &mut AliasTable, name: String, expression: String) {
     aliases.alias(name, expression);
 }
 
-fn command_load(db: &Database, directories: &[&str]) -> AppResultU {
-    let loader = loader::Loader::default();
-    for directory in directories {
-        loader.load(&db, &directory)?;
+fn command_load(db: &Database, paths: &[&str]) -> AppResultU {
+    let loader = loader::Loader::new(db);
+    for path in paths {
+        loader.load(&path)?;
     }
     Ok(())
 }

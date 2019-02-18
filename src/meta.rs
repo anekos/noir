@@ -50,6 +50,19 @@ impl Meta {
     }
 }
 
+impl std::fmt::Display for Meta {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}: dim={}x{} type={} anim={}",
+            self.file.path,
+            self.dimensions.width,
+            self.dimensions.height,
+            self.mime_type,
+            self.animation)
+    }
+}
+
 
 impl Dimensions {
     pub fn ratio(&self) -> (u32, u32) {

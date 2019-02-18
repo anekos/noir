@@ -9,25 +9,42 @@ use crate::database::Database;
 
 
 
-#[derive(Default, Debug)]
-pub struct Loader();
+pub struct Loader<'a> {
+    db: &'a Database,
+}
 
 
-impl Loader {
-    pub fn load<T: AsRef<Path>>(&self, db: &Database, directory: &T) -> AppResultU {
-        println!("Loading: {:?}", directory.as_ref());
+impl<'a> Loader<'a> {
+    pub fn new(db: &'a Database) -> Self {
+        Loader { db }
+    }
 
-        for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
-            let path = entry.path();
-            if entry.file_type().is_dir() || !has_image_extension(&path)? {
-                continue;
-            }
-            if let Ok(meta) = Meta::from_file(&path) {
-                db.insert(&meta)?;
-                println!("{} → {:?}", path.display(), meta);
-            }
+    pub fn load<T: AsRef<Path>>(&self, path: &T) -> AppResultU {
+        if path.as_ref().is_dir() {
+            self.load_directory(path)?
+        } else if path.as_ref().is_file() {
+            self.load_file(path)?
+
         }
+        Ok(())
+    }
 
+    fn load_file<T: AsRef<Path>>(&self, file: &T) -> AppResultU {
+        if !has_image_extension(file)? {
+            return Ok(());
+        }
+        if let Ok(meta) = Meta::from_file(&file) {
+            self.db.insert(&meta)?;
+            println!("{}", meta);
+        }
+        Ok(())
+    }
+
+    fn load_directory<T: AsRef<Path>>(&self, directory: &T) -> AppResultU {
+        println!("Loading: {:?}", directory.as_ref());
+        for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
+            self.load_file(&entry.path())?;
+        }
         Ok(())
     }
 }
