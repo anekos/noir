@@ -1,5 +1,6 @@
 
-use std::io::{BufWriter, Write};
+use std::fs::File;
+use std::io::{BufReader, BufWriter, stdin, stdout, Write};
 use std::process::exit;
 
 #[macro_use] extern crate clap;
@@ -48,6 +49,12 @@ fn app() -> AppResultU {
                     .arg(Arg::with_name("path")
                          .required(true)
                          .min_values(1)))
+        .subcommand(SubCommand::with_name("load-list")
+                    .alias("l")
+                    .about("Load from list file")
+                    .arg(Arg::with_name("list-file")
+                         .required(true)
+                         .min_values(1)))
         .subcommand(SubCommand::with_name("select")
                     .alias("s")
                     .about("Select SQL")
@@ -78,6 +85,9 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         command_load(&db, &paths)?;
+    } else if let Some(ref matches) = matches.subcommand_matches("load-list") {
+        let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
+        command_load_list(&db, &paths)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
@@ -104,12 +114,28 @@ fn command_load(db: &Database, paths: &[&str]) -> AppResultU {
     Ok(())
 }
 
+fn command_load_list(db: &Database, paths: &[&str]) -> AppResultU {
+    let loader = loader::Loader::new(db);
+    for path in paths {
+        if &"-" == path {
+            let input = stdin();
+            let mut input = input.lock();
+            loader.load_list(&mut input)?;
+        } else {
+            let file = File::open(path)?;
+            let mut file = BufReader::new(file);
+            loader.load_list(&mut file)?;
+        }
+    }
+    Ok(())
+}
+
 fn command_select(db: &Database, expression: &str) -> AppResultU {
-    let out = std::io::stdout();
-    let out = out.lock();
-    let mut out = BufWriter::new(out);
+    let output = stdout();
+    let output = output.lock();
+    let mut output = BufWriter::new(output);
     db.select(expression, |path| {
-        writeln!(out, "{}", path)?;
+        writeln!(output, "{}", path)?;
         Ok(())
     })
 }

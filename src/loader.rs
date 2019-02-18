@@ -1,4 +1,5 @@
 
+use std::io::BufRead;
 use std::path::Path;
 
 use walkdir::WalkDir;
@@ -24,7 +25,13 @@ impl<'a> Loader<'a> {
             self.load_directory(path)?
         } else if path.as_ref().is_file() {
             self.load_file(path)?
+        }
+        Ok(())
+    }
 
+    pub fn load_list<T: BufRead>(&self, list: &mut T) -> AppResultU {
+        for line in list.lines() {
+            self.load(&line?)?;
         }
         Ok(())
     }
