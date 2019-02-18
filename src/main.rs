@@ -1,5 +1,5 @@
 
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::process::exit;
 
 #[macro_use] extern crate clap;
@@ -106,7 +106,8 @@ fn command_load(db: &Database, paths: &[&str]) -> AppResultU {
 
 fn command_select(db: &Database, expression: &str) -> AppResultU {
     let out = std::io::stdout();
-    let mut out = out.lock();
+    let out = out.lock();
+    let mut out = BufWriter::new(out);
     db.select(expression, |path| {
         writeln!(out, "{}", path)?;
         Ok(())
