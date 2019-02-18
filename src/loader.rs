@@ -12,12 +12,13 @@ use crate::database::Database;
 
 pub struct Loader<'a> {
     db: &'a Database,
+    check_extension: bool,
 }
 
 
 impl<'a> Loader<'a> {
-    pub fn new(db: &'a Database) -> Self {
-        Loader { db }
+    pub fn new(db: &'a Database, check_extension: bool) -> Self {
+        Loader { db, check_extension }
     }
 
     pub fn load<T: AsRef<Path>>(&self, path: &T) -> AppResultU {
@@ -37,7 +38,7 @@ impl<'a> Loader<'a> {
     }
 
     fn load_file<T: AsRef<Path>>(&self, file: &T) -> AppResultU {
-        if !has_image_extension(file)? {
+        if self.check_extension && !has_image_extension(file)? {
             return Ok(());
         }
         if let Ok(meta) = Meta::from_file(&file) {

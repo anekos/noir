@@ -35,6 +35,11 @@ fn main() {
 
 
 fn app() -> AppResultU {
+    let check = Arg::with_name("check-extension")
+        .help("Check file extension before load")
+        .short("c")
+        .long("check-extension");
+
     let app = app_from_crate!()
         .arg(Arg::with_name("database-name")
              .short("n")
@@ -57,13 +62,15 @@ fn app() -> AppResultU {
                     .about("Load directory or file")
                     .arg(Arg::with_name("path")
                          .required(true)
-                         .min_values(1)))
+                         .min_values(1))
+                    .arg(check.clone()))
         .subcommand(SubCommand::with_name("load-list")
                     .alias("l")
                     .about("Load from list file")
                     .arg(Arg::with_name("list-file")
                          .required(true)
-                         .min_values(0)))
+                         .min_values(0))
+                    .arg(check))
         .subcommand(SubCommand::with_name("select")
                     .alias("s")
                     .about("Select SQL")
@@ -99,10 +106,12 @@ fn app() -> AppResultU {
         command_alias(&mut aliases, name, join(&expressions, None));
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
-        command_load(&db, &paths)?;
+        let check = matches.is_present("check-extension");
+        command_load(&db, check, &paths)?;
     } else if let Some(ref matches) = matches.subcommand_matches("load-list") {
         let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
-        command_load_list(&db, &paths)?;
+        let check = matches.is_present("check-extension");
+        command_load_list(&db, check, &paths)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
@@ -121,16 +130,16 @@ fn command_alias(aliases: &mut AliasTable, name: String, expression: String) {
     aliases.alias(name, expression);
 }
 
-fn command_load(db: &Database, paths: &[&str]) -> AppResultU {
-    let loader = loader::Loader::new(db);
+fn command_load(db: &Database, check_extension: bool, paths: &[&str]) -> AppResultU {
+    let loader = loader::Loader::new(db, check_extension);
     for path in paths {
         loader.load(&path)?;
     }
     Ok(())
 }
 
-fn command_load_list(db: &Database, mut paths: &[&str]) -> AppResultU {
-    let loader = loader::Loader::new(db);
+fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str]) -> AppResultU {
+    let loader = loader::Loader::new(db, check_extension);
     if paths.is_empty() {
         paths = &["-"];
     }
