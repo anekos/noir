@@ -54,7 +54,7 @@ fn app() -> AppResultU {
                     .about("Load from list file")
                     .arg(Arg::with_name("list-file")
                          .required(true)
-                         .min_values(1)))
+                         .min_values(0)))
         .subcommand(SubCommand::with_name("select")
                     .alias("s")
                     .about("Select SQL")
@@ -114,8 +114,11 @@ fn command_load(db: &Database, paths: &[&str]) -> AppResultU {
     Ok(())
 }
 
-fn command_load_list(db: &Database, paths: &[&str]) -> AppResultU {
+fn command_load_list(db: &Database, mut paths: &[&str]) -> AppResultU {
     let loader = loader::Loader::new(db);
+    if paths.is_empty() {
+        paths = &["-"];
+    }
     for path in paths {
         if &"-" == path {
             let input = stdin();
