@@ -4,11 +4,10 @@ use std::io::{BufReader, BufWriter, stdin, stdout, Write};
 use std::process::exit;
 use std::path::{Path, PathBuf};
 
-#[macro_use] extern crate clap;
-use clap::{Arg, SubCommand};
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 
 mod alias;
+mod args;
 mod database;
 mod errors;
 mod loader;
@@ -35,55 +34,7 @@ fn main() {
 
 
 fn app() -> AppResultU {
-    let check = Arg::with_name("check-extension")
-        .help("Check file extension before load")
-        .short("c")
-        .long("check-extension");
-
-    let app = app_from_crate!()
-        .arg(Arg::with_name("database-name")
-             .short("n")
-             .long("name")
-             .takes_value(true))
-        .arg(Arg::with_name("database-path")
-             .short("p")
-             .long("path")
-             .takes_value(true))
-        .subcommand(SubCommand::with_name("alias")
-                    .alias("a")
-                    .about("Define expression alias")
-                    .arg(Arg::with_name("name")
-                         .required(true))
-                    .arg(Arg::with_name("expression")
-                         .required(true)
-                         .min_values(1)))
-        .subcommand(SubCommand::with_name("load")
-                    .alias("l")
-                    .about("Load directory or file")
-                    .arg(Arg::with_name("path")
-                         .required(true)
-                         .min_values(1))
-                    .arg(check.clone()))
-        .subcommand(SubCommand::with_name("load-list")
-                    .alias("l")
-                    .about("Load from list file")
-                    .arg(Arg::with_name("list-file")
-                         .required(true)
-                         .min_values(0))
-                    .arg(check))
-        .subcommand(SubCommand::with_name("select")
-                    .alias("s")
-                    .about("Select SQL")
-                    .arg(Arg::with_name("where")
-                         .required(true)
-                         .min_values(1)))
-        .subcommand(SubCommand::with_name("unalias")
-                    .alias("s")
-                    .about("Unalias")
-                    .arg(Arg::with_name("name")
-                         .required(true)));
-
-    let matches = app.get_matches();
+    let matches = crate::args::build_cli().get_matches();
     let db = {
         let path: PathBuf = if let Some(path) = matches.value_of("database-path") {
             Path::new(path).to_owned()
@@ -104,6 +55,9 @@ fn app() -> AppResultU {
         let name = matches.value_of("name").unwrap().to_owned();
         let expressions: Vec<&str> = matches.values_of("expression").unwrap().collect();
         command_alias(&mut aliases, name, join(&expressions, None));
+    } else if let Some(ref matches) = matches.subcommand_matches("completions") {
+        let shell = matches.value_of("shell").unwrap();
+        args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         let check = matches.is_present("check-extension");
