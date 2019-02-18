@@ -2,6 +2,7 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter, stdin, stdout, Write};
 use std::process::exit;
+use std::path::{Path, PathBuf};
 
 #[macro_use] extern crate clap;
 use clap::{Arg, SubCommand};
@@ -35,6 +36,14 @@ fn main() {
 
 fn app() -> AppResultU {
     let app = app_from_crate!()
+        .arg(Arg::with_name("database-name")
+             .short("n")
+             .long("name")
+             .takes_value(true))
+        .arg(Arg::with_name("database-path")
+             .short("p")
+             .long("path")
+             .takes_value(true))
         .subcommand(SubCommand::with_name("alias")
                     .alias("a")
                     .about("Define expression alias")
@@ -69,9 +78,15 @@ fn app() -> AppResultU {
 
     let matches = app.get_matches();
     let db = {
-        let mut db = get_app_dir(AppDataType::UserData, &APP_INFO, "db")?;
-        db.push("default.sqlite");
-        Database::open(&db)?
+        let path: PathBuf = if let Some(path) = matches.value_of("database-path") {
+            Path::new(path).to_owned()
+        } else {
+            let mut path = get_app_dir(AppDataType::UserData, &APP_INFO, "db")?;
+            let name = matches.value_of("database-name").unwrap_or("default");
+            path.push(format!("{}.sqlite", name));
+            path
+        };
+        Database::open(&path)?
     };
     let mut aliases = {
         let aliases = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
