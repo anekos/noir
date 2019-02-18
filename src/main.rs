@@ -1,9 +1,9 @@
 
+use std::io::Write;
 use std::process::exit;
 
 #[macro_use] extern crate clap;
 use clap::{Arg, SubCommand};
-use failure::Fail;
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 
 mod alias;
@@ -11,11 +11,10 @@ mod database;
 mod errors;
 mod loader;
 mod meta;
-mod search;
 
 use crate::alias::AliasTable;
 use crate::database::Database;
-use crate::errors::AppResultU;
+use crate::errors::{AppError, AppResultU};
 
 
 
@@ -23,15 +22,12 @@ const APP_INFO: AppInfo = AppInfo { name: "image-db", author: "anekos" };
 
 
 fn main() {
-    if let Err(err) = app() {
-        let mut fail: &Fail = &err;
-        let mut message = err.to_string();
-        while let Some(cause) = fail.cause() {
-            message.push_str(&format!("\n\tcaused by: {}", cause));
-            fail = cause;
-        }
-        eprintln!("{}\n", message);
-        exit(1);
+    match app() {
+        Err(AppError::Void) | Ok(()) => (),
+        Err(err) => {
+            eprintln!("{}", err);
+            exit(1);
+        },
     }
 }
 
@@ -109,10 +105,12 @@ fn command_load(db: &Database, directories: &[&str]) -> AppResultU {
 }
 
 fn command_select(db: &Database, expression: &str) -> AppResultU {
-    for it in crate::search::select(db, expression)? {
-        println!("it: {:?}", it);
-    }
-    Ok(())
+    let out = std::io::stdout();
+    let mut out = out.lock();
+    db.select(expression, |path| {
+        writeln!(out, "{}", path)?;
+        Ok(())
+    })
 }
 
 fn command_unalias(aliases: &mut AliasTable, name: &str) {

@@ -52,7 +52,7 @@ impl Database {
         Ok(Database { connection })
     }
 
-    pub fn select(&self, where_expression: &str) -> AppResult<Vec<Meta>> {
+    pub fn select<F>(&self, where_expression: &str, mut f: F) -> AppResultU where F: FnMut(&str) -> AppResultU {
         use crate::meta::*;
 
         let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
@@ -73,11 +73,10 @@ impl Database {
         })?;
 
         for it in iter {
-            println!("{}", it?.file.path);
+            f(&it?.file.path)?;
         }
 
-        Ok(vec!())
-
+        Ok(())
     }
 }
 

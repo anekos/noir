@@ -28,6 +28,8 @@ pub enum AppError {
     Sqlite(rusqlite::Error),
     #[fail(display = "UTF-8 error")]
     Utf8,
+    #[fail(display = "")]
+    Void,
 }
 
 
@@ -45,9 +47,19 @@ define_error!(app_dirs::AppDirsError, AppDir);
 define_error!(clap::Error, Clap);
 define_error!(rusqlite::Error, Sqlite);
 define_error!(serde_yaml::Error, Serde);
-define_error!(std::io::Error, Io);
 define_error!(walkdir::Error, DirectoryWalking);
 
 pub fn from_os_str(s: &OsStr) -> AppResult<&str> {
     s.to_str().ok_or(AppError::Utf8)
+}
+
+
+impl From<std::io::Error> for AppError {
+    fn from(error: std::io::Error) -> AppError {
+        if error.kind() == std::io::ErrorKind::BrokenPipe {
+            AppError::Void
+        } else {
+            AppError::Io(error)
+        }
+    }
 }
