@@ -46,10 +46,8 @@ fn app() -> AppResultU {
         };
         Database::open(&path)?
     };
-    let mut aliases = {
-        let aliases = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
-        AliasTable::open(&aliases)?
-    };
+    let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
+    let mut aliases = AliasTable::open(&aliases_file)?;
 
     if let Some(ref matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name").unwrap().to_owned();
@@ -75,7 +73,7 @@ fn app() -> AppResultU {
     }
 
     db.close()?;
-    aliases.close()?;
+    aliases.save(&aliases_file)?;
 
     Ok(())
 }
