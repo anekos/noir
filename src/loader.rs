@@ -16,15 +16,16 @@ pub struct Loader<'a> {
     check_extension: bool,
     db: &'a Database,
     tag_generator: Option<&'a str>,
+    count: usize,
 }
 
 
 impl<'a> Loader<'a> {
     pub fn new(db: &'a Database, check_extension: bool, tag_generator: Option<&'a str>) -> Self {
-        Loader { db, check_extension, tag_generator }
+        Loader { db, check_extension, tag_generator, count: 0 }
     }
 
-    pub fn load<T: AsRef<Path>>(&self, path: &T) -> AppResultU {
+    pub fn load<T: AsRef<Path>>(&mut self, path: &T) -> AppResultU {
         if path.as_ref().is_dir() {
             self.load_directory(path)?
         } else if path.as_ref().is_file() {
@@ -33,18 +34,22 @@ impl<'a> Loader<'a> {
         Ok(())
     }
 
-    pub fn load_list<T: BufRead>(&self, list: &mut T) -> AppResultU {
+    pub fn load_list<T: BufRead>(&mut self, list: &mut T) -> AppResultU {
         for line in list.lines() {
             self.load(&line?)?;
         }
         Ok(())
     }
 
-    fn load_file<T: AsRef<Path>>(&self, file: &T) -> AppResultU {
+    fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         if self.check_extension && !has_image_extension(file)? {
             return Ok(());
         }
         if let Ok(meta) = Meta::from_file(file) {
+            self.count += 1;
+            if self.count % 100 == 0 {
+                self.db.flush()?;
+            }
             let tags = self.generate_tags(file)?;
             let tags: Vec<&str> = tags.iter().map(|it| it.as_ref()).collect();
             self.db.set_tags(from_path(file)?, &tags)?;
@@ -54,7 +59,7 @@ impl<'a> Loader<'a> {
         Ok(())
     }
 
-    fn load_directory<T: AsRef<Path>>(&self, directory: &T) -> AppResultU {
+    fn load_directory<T: AsRef<Path>>(&mut self, directory: &T) -> AppResultU {
         println!("Loading: {:?}", directory.as_ref());
         for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
             self.load_file(&entry.path())?;

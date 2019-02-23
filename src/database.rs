@@ -35,6 +35,12 @@ impl Database {
         Ok(())
     }
 
+    pub fn flush(&self) -> AppResultU {
+        self.connection.execute("COMMIT;", NO_PARAMS)?;
+        self.connection.execute("BEGIN;", NO_PARAMS)?;
+        Ok(())
+    }
+
     pub fn insert(&self, meta: &Meta) -> AppResultU {
         let (width, height) = &meta.dimensions.ratio();
         let args = &[

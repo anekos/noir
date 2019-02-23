@@ -121,7 +121,7 @@ fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Opti
 }
 
 fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let loader = loader::Loader::new(db, check_extension, tag_generator);
+    let mut loader = loader::Loader::new(db, check_extension, tag_generator);
     for path in paths {
         loader.load(&path)?;
     }
@@ -129,7 +129,7 @@ fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_genera
 }
 
 fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let loader = loader::Loader::new(db, check_extension, tag_generator);
+    let mut loader = loader::Loader::new(db, check_extension, tag_generator);
     if paths.is_empty() {
         paths = &["-"];
     }
