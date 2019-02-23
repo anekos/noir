@@ -22,6 +22,9 @@ impl AliasTable {
     }
 
     pub fn expand(&self, expression: &str) -> String {
+        if self.table.is_empty() {
+            return expression.to_owned();
+        }
         let pattern = self.keywords_pattern();
         pattern.replace_all(
             expression,
@@ -93,5 +96,7 @@ mod tests {
         aliases.alias("hoge".to_owned(), "fuga".to_owned());
 
         assert_eq!(aliases.expand("beginhogeend"), "beginhogeend".to_owned());
+        assert_eq!(aliases.expand("a"), "a".to_owned());
+        assert_eq!(aliases.expand("1"), "1".to_owned());
     }
 }
