@@ -19,7 +19,7 @@ use crate::errors::{AppError, AppResultU};
 
 
 
-const APP_INFO: AppInfo = AppInfo { name: "image-db", author: "anekos" };
+const APP_INFO: AppInfo = AppInfo { name: "noir", author: "anekos" };
 
 
 fn main() {
