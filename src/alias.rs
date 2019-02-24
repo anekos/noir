@@ -45,6 +45,10 @@ impl AliasTable {
             }).to_string()
     }
 
+    pub fn names(&self) -> Vec<&str> {
+        self.table.keys().map(|it| it.as_ref()).collect()
+    }
+
     pub fn open<T: AsRef<Path>>(path: &T) -> AppResult<Self> {
         let path = path.as_ref().to_path_buf();
 

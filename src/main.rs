@@ -5,6 +5,7 @@ use std::process::exit;
 use std::path::{Path, PathBuf};
 
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
+use if_let_return::if_let_some;
 
 mod alias;
 mod args;
@@ -50,10 +51,10 @@ fn app() -> AppResultU {
     let mut aliases = AliasTable::open(&aliases_file)?;
 
     if let Some(ref matches) = matches.subcommand_matches("alias") {
-        let name = matches.value_of("name").unwrap().to_owned();
-        let expressions: Vec<&str> = matches.values_of("expression").unwrap().collect();
+        let name = matches.value_of("name");
+        let expressions: Option<Vec<&str>> = matches.values_of("expression").map(|it| it.collect());
         let recursive = matches.is_present("recursive");
-        command_alias(&mut aliases, name, join(&expressions, None), recursive);
+        command_alias(&mut aliases, name, expressions, recursive)?;
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
@@ -104,8 +105,19 @@ fn app() -> AppResultU {
     Ok(())
 }
 
-fn command_alias(aliases: &mut AliasTable, name: String, expression: String, recursive: bool) {
-    aliases.alias(name, expression, recursive);
+fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Option<Vec<&str>>, recursive: bool) -> AppResultU {
+    if_let_some!(name = name, {
+        for name in aliases.names() {
+            println!("{}", name);
+        }
+        Ok(())
+    });
+    if_let_some!(expressions = expressions, {
+        println!("{}", aliases.expand(name));
+        Ok(())
+    });
+    aliases.alias(name.to_owned(), join(&expressions, None), recursive);
+    Ok(())
 }
 
 fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
