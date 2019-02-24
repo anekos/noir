@@ -85,10 +85,16 @@ fn app() -> AppResultU {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
             command_tag_set(&db, path, &tags)?;
+        } else {
+            eprintln!("{}", matches.usage());
+            exit(1);
         }
     } else if let Some(ref matches) = matches.subcommand_matches("unalias") {
         let name = matches.value_of("name").unwrap();
         command_unalias(&mut aliases, name);
+    } else {
+        eprintln!("{}", matches.usage());
+        exit(1);
     }
 
     db.close()?;
