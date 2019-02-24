@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS tags (
+  tag TEXT PRIMARY KEY,
+  path TEXT
+);
+

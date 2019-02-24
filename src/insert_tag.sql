@@ -1,0 +1,2 @@
+INSERT INTO tags VALUES (?1, ?2)
+

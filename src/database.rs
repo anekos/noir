@@ -17,6 +17,19 @@ pub struct Database {
 
 
 impl Database {
+    pub fn add_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+        for tag in tags {
+            let args = &[tag, path];
+            self.connection.execute(include_str!("insert_tag.sql"), args)?;
+        }
+        Ok(())
+    }
+
+    pub fn clear_tags(&self, path: &str) -> AppResultU {
+        self.connection.execute(include_str!("clear_tags.sql"), &[path])?;
+        Ok(())
+    }
+
     pub fn close(self) -> AppResultU {
         self.connection.execute("COMMIT;", NO_PARAMS)?;
         Ok(())
@@ -78,11 +91,25 @@ impl Database {
 
         Ok(())
     }
+
+    pub fn remove_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+        for tag in tags {
+            let args = &[tag, path];
+            self.connection.execute(include_str!("remove_tag.sql"), args)?;
+        }
+        Ok(())
+    }
+
+    pub fn set_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+        self.clear_tags(path)?;
+        self.add_tags(path, tags)
+    }
 }
 
 fn create_table(conn: &Connection) -> AppResultU {
-    let sql: &'static str = include_str!("create_table.sql");
+    let sql: &'static str = include_str!("create_images_table.sql");
+    conn.execute(sql, NO_PARAMS)?;
+    let sql: &'static str = include_str!("create_tags_table.sql");
     conn.execute(sql, NO_PARAMS)?;
     Ok(())
 }
-

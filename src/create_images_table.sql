@@ -11,7 +11,3 @@ CREATE TABLE IF NOT EXISTS images (
   modified TEXT,
   accessed TEXT
 );
-CREATE TABLE IF NOT EXISTS tags (
-  tag TEXT PRIMARY KEY,
-  path TEXT
-);

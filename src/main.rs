@@ -67,6 +67,23 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
+    } else if let Some(ref matches) = matches.subcommand_matches("tag") {
+        if let Some(ref matches) = matches.subcommand_matches("add") {
+            let path: &str = matches.value_of("path").unwrap();
+            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            command_tag_add(&db, path, &tags)?;
+        } else if let Some(ref matches) = matches.subcommand_matches("clear") {
+            let path: &str = matches.value_of("path").unwrap();
+            command_tag_clear(&db, path)?;
+        } else if let Some(ref matches) = matches.subcommand_matches("remove") {
+            let path: &str = matches.value_of("path").unwrap();
+            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            command_tag_remove(&db, path, &tags)?;
+        } else if let Some(ref matches) = matches.subcommand_matches("set") {
+            let path: &str = matches.value_of("path").unwrap();
+            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            command_tag_set(&db, path, &tags)?;
+        }
     } else if let Some(ref matches) = matches.subcommand_matches("unalias") {
         let name = matches.value_of("name").unwrap();
         command_unalias(&mut aliases, name);
@@ -117,6 +134,22 @@ fn command_select(db: &Database, expression: &str) -> AppResultU {
         writeln!(output, "{}", path)?;
         Ok(())
     })
+}
+
+fn command_tag_add(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+    db.add_tags(path, tags)
+}
+
+fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
+    db.clear_tags(path)
+}
+
+fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+    db.remove_tags(path, tags)
+}
+
+fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+    db.set_tags(path, tags)
 }
 
 fn command_unalias(aliases: &mut AliasTable, name: &str) {
