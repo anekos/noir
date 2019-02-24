@@ -46,7 +46,9 @@ impl AliasTable {
     }
 
     pub fn names(&self) -> Vec<&str> {
-        self.table.keys().map(|it| it.as_ref()).collect()
+        let mut result: Vec<&str> = self.table.keys().map(|it| it.as_ref()).collect();
+        result.sort();
+        result
     }
 
     pub fn open<T: AsRef<Path>>(path: &T) -> AppResult<Self> {
