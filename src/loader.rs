@@ -1,24 +1,27 @@
 
 use std::io::BufRead;
 use std::path::Path;
+use std::process::{Command, Stdio};
 
 use walkdir::WalkDir;
+use if_let_return::if_let_some;
 
-use crate::errors::{AppResult, AppResultU, from_os_str};
+use crate::errors::{AppResult, AppResultU, from_os_str, from_path};
 use crate::meta::Meta;
 use crate::database::Database;
 
 
 
 pub struct Loader<'a> {
-    db: &'a Database,
     check_extension: bool,
+    db: &'a Database,
+    tag_generator: Option<&'a str>,
 }
 
 
 impl<'a> Loader<'a> {
-    pub fn new(db: &'a Database, check_extension: bool) -> Self {
-        Loader { db, check_extension }
+    pub fn new(db: &'a Database, check_extension: bool, tag_generator: Option<&'a str>) -> Self {
+        Loader { db, check_extension, tag_generator }
     }
 
     pub fn load<T: AsRef<Path>>(&self, path: &T) -> AppResultU {
@@ -41,7 +44,10 @@ impl<'a> Loader<'a> {
         if self.check_extension && !has_image_extension(file)? {
             return Ok(());
         }
-        if let Ok(meta) = Meta::from_file(&file) {
+        if let Ok(meta) = Meta::from_file(file) {
+            let tags = self.generate_tags(file)?;
+            let tags: Vec<&str> = tags.iter().map(|it| it.as_ref()).collect();
+            self.db.set_tags(from_path(file)?, &tags)?;
             self.db.insert(&meta)?;
             println!("{}", meta);
         }
@@ -54,6 +60,15 @@ impl<'a> Loader<'a> {
             self.load_file(&entry.path())?;
         }
         Ok(())
+    }
+
+    fn generate_tags<T: AsRef<Path>>(&self, file: &T) -> AppResult<Vec<String>> {
+        if_let_some!(tag_generator = self.tag_generator, Ok(vec!()));
+        let mut command = Command::new(tag_generator);
+        command.args(&[file.as_ref().as_os_str()]);
+        command.stdout(Stdio::piped());
+        let result = String::from_utf8(command.output()?.stdout)?;
+        Ok(result.lines().filter(|it| !it.is_empty()).map(|it| it.to_owned()).collect())
     }
 }
 

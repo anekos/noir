@@ -59,11 +59,13 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         let check = matches.is_present("check-extension");
-        command_load(&db, check, &paths)?;
+        let tag_generator = matches.value_of("tag-script");
+        command_load(&db, check, &paths, tag_generator)?;
     } else if let Some(ref matches) = matches.subcommand_matches("load-list") {
         let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
         let check = matches.is_present("check-extension");
-        command_load_list(&db, check, &paths)?;
+        let tag_generator = matches.value_of("tag-script");
+        command_load_list(&db, check, &paths, tag_generator)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
@@ -99,16 +101,16 @@ fn command_alias(aliases: &mut AliasTable, name: String, expression: String) {
     aliases.alias(name, expression);
 }
 
-fn command_load(db: &Database, check_extension: bool, paths: &[&str]) -> AppResultU {
-    let loader = loader::Loader::new(db, check_extension);
+fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
+    let loader = loader::Loader::new(db, check_extension, tag_generator);
     for path in paths {
         loader.load(&path)?;
     }
     Ok(())
 }
 
-fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str]) -> AppResultU {
-    let loader = loader::Loader::new(db, check_extension);
+fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
+    let loader = loader::Loader::new(db, check_extension, tag_generator);
     if paths.is_empty() {
         paths = &["-"];
     }

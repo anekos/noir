@@ -111,5 +111,7 @@ fn create_table(conn: &Connection) -> AppResultU {
     conn.execute(sql, NO_PARAMS)?;
     let sql: &'static str = include_str!("create_tags_table.sql");
     conn.execute(sql, NO_PARAMS)?;
+    let sql: &'static str = include_str!("create_tags_index.sql");
+    conn.execute(sql, NO_PARAMS)?;
     Ok(())
 }

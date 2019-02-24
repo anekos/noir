@@ -1,5 +1,6 @@
 
 use std::ffi::OsStr;
+use std::path::Path;
 
 use failure::Fail;
 
@@ -27,7 +28,9 @@ pub enum AppError {
     #[fail(display = "Database error: {}", 0)]
     Sqlite(rusqlite::Error),
     #[fail(display = "UTF-8 error")]
-    Utf8,
+    UnknownUtf8,
+    #[fail(display = "UTF-8 error: {}", 0)]
+    Utf8(std::string::FromUtf8Error),
     #[fail(display = "")]
     Void,
 }
@@ -48,9 +51,14 @@ define_error!(clap::Error, Clap);
 define_error!(rusqlite::Error, Sqlite);
 define_error!(serde_yaml::Error, Serde);
 define_error!(walkdir::Error, DirectoryWalking);
+define_error!(std::string::FromUtf8Error, Utf8);
 
 pub fn from_os_str(s: &OsStr) -> AppResult<&str> {
-    s.to_str().ok_or(AppError::Utf8)
+    s.to_str().ok_or(AppError::UnknownUtf8)
+}
+
+pub fn from_path<T: AsRef<Path>>(path: &T) -> AppResult<&str> {
+    from_os_str(path.as_ref().as_os_str())
 }
 
 
