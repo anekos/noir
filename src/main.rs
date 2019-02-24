@@ -52,7 +52,8 @@ fn app() -> AppResultU {
     if let Some(ref matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name").unwrap().to_owned();
         let expressions: Vec<&str> = matches.values_of("expression").unwrap().collect();
-        command_alias(&mut aliases, name, join(&expressions, None));
+        let recursive = matches.is_present("recursive");
+        command_alias(&mut aliases, name, join(&expressions, None), recursive);
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
@@ -103,8 +104,8 @@ fn app() -> AppResultU {
     Ok(())
 }
 
-fn command_alias(aliases: &mut AliasTable, name: String, expression: String) {
-    aliases.alias(name, expression);
+fn command_alias(aliases: &mut AliasTable, name: String, expression: String, recursive: bool) {
+    aliases.alias(name, expression, recursive);
 }
 
 fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {

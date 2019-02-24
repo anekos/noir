@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 use regex::{Captures, Regex};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::{AppResult, AppResultU};
 
@@ -12,13 +13,18 @@ use crate::errors::{AppResult, AppResultU};
 
 #[derive(Debug, Default)]
 pub struct AliasTable {
-    table: HashMap<String, String>,
+    table: HashMap<String, Alias>,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct Alias {
+    expression: String,
+    recursive: bool,
+}
 
 impl AliasTable {
-    pub fn alias(&mut self, from: String, to: String) {
-        self.table.insert(from, to);
+    pub fn alias(&mut self, from: String, to: String, recursive: bool) {
+        self.table.insert(from, Alias { expression: to, recursive });
     }
 
     pub fn expand(&self, expression: &str) -> String {
@@ -30,7 +36,12 @@ impl AliasTable {
             expression,
             |captures: &Captures| {
                 let name = captures.get(0).unwrap().as_str();
-                &self.table[name]
+                let alias = &self.table[name];
+                if alias.recursive {
+                    self.expand(&alias.expression)
+                } else {
+                    alias.expression.clone()
+                }
             }).to_string()
     }
 
@@ -44,7 +55,6 @@ impl AliasTable {
         let mut file = File::open(&path)?;
         let mut source = "".to_owned();
         let _ = file.read_to_string(&mut source)?;
-
         Ok(AliasTable { table: serde_yaml::from_str(&source)? })
     }
 
@@ -81,7 +91,7 @@ mod tests {
     #[test]
     fn test_expandable() {
         let mut aliases = crate::alias::AliasTable::default();
-        aliases.alias("hoge".to_owned(), "fuga".to_owned());
+        aliases.alias("hoge".to_owned(), "fuga".to_owned(), false);
 
         assert_eq!(aliases.expand("begin hoge end"), "begin fuga end".to_owned());
         assert_eq!(aliases.expand("hoge end"), "fuga end".to_owned());
@@ -93,10 +103,28 @@ mod tests {
     #[test]
     fn test_non_expandable() {
         let mut aliases = crate::alias::AliasTable::default();
-        aliases.alias("hoge".to_owned(), "fuga".to_owned());
+        aliases.alias("hoge".to_owned(), "fuga".to_owned(), false);
 
         assert_eq!(aliases.expand("beginhogeend"), "beginhogeend".to_owned());
         assert_eq!(aliases.expand("a"), "a".to_owned());
         assert_eq!(aliases.expand("1"), "1".to_owned());
+    }
+
+    #[test]
+    fn test_recursive() {
+        let mut aliases = crate::alias::AliasTable::default();
+        aliases.alias("hoge".to_owned(), "fuga".to_owned(), true);
+        aliases.alias("fuga".to_owned(), "meow".to_owned(), false);
+
+        assert_eq!(aliases.expand("begin hoge end"), "begin meow end".to_owned());
+    }
+
+    #[test]
+    fn test_nonrecursive() {
+        let mut aliases = crate::alias::AliasTable::default();
+        aliases.alias("hoge".to_owned(), "fuga".to_owned(), false);
+        aliases.alias("fuga".to_owned(), "meow".to_owned(), false);
+
+        assert_eq!(aliases.expand("begin hoge end"), "begin fuga end".to_owned());
     }
 }
