@@ -27,9 +27,9 @@ impl<'a> Loader<'a> {
 
     pub fn load<T: AsRef<Path>>(&mut self, path: &T) -> AppResultU {
         if path.as_ref().is_dir() {
-            self.load_directory(path)?
+            self.load_directory(path)?;
         } else if path.as_ref().is_file() {
-            self.load_file(path)?
+            self.load_file(path)?;
         }
         Ok(())
     }
