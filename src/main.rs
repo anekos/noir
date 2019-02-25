@@ -74,7 +74,8 @@ fn app() -> AppResultU {
         command_reset(&db)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
-        command_select(&db, &join(&wheres, Some(&aliases)))?;
+        let vacuum = matches.is_present("vacuum");
+        command_select(&db, &join(&wheres, Some(&aliases)), vacuum)?;
     } else if let Some(ref matches) = matches.subcommand_matches("tag") {
         if let Some(ref matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -151,11 +152,11 @@ fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], t
     Ok(())
 }
 
-fn command_select(db: &Database, expression: &str) -> AppResultU {
+fn command_select(db: &Database, expression: &str, vacuum: bool) -> AppResultU {
     let output = stdout();
     let output = output.lock();
     let mut output = BufWriter::new(output);
-    db.select(expression, |path| {
+    db.select(expression, vacuum, |path| {
         writeln!(output, "{}", path)?;
         Ok(())
     })

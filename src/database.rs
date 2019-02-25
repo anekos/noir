@@ -35,6 +35,12 @@ impl Database {
         Ok(())
     }
 
+    fn delete_path(&self, path: &str) -> AppResultU {
+        self.connection.execute("DELETE FROM images WHERE path = ?1", &[path])?;
+        self.connection.execute("DELETE FROM tags WHERE path = ?1", &[path])?;
+        Ok(())
+    }
+
     pub fn flush(&self) -> AppResultU {
         self.connection.execute("COMMIT;", NO_PARAMS)?;
         self.connection.execute("BEGIN;", NO_PARAMS)?;
@@ -78,7 +84,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn select<F>(&self, where_expression: &str, mut f: F) -> AppResultU where F: FnMut(&str) -> AppResultU {
+    pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str) -> AppResultU {
         use crate::meta::*;
 
         let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
@@ -99,7 +105,17 @@ impl Database {
         })?;
 
         for it in iter {
-            f(&it?.file.path)?;
+            let it = it?;
+            if vacuum {
+                let path = Path::new(&it.file.path);
+                if path.is_file() {
+                    f(&it.file.path)?;
+                } else {
+                    self.delete_path(&it.file.path)?;
+                }
+            } else {
+                f(&it.file.path)?;
+            }
         }
 
         Ok(())
