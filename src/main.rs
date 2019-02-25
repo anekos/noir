@@ -153,13 +153,13 @@ fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], t
 }
 
 fn command_select(db: &Database, expression: &str, vacuum: bool) -> AppResultU {
-    let output = stdout();
-    let output = output.lock();
     let error = stderr();
     let error = error.lock();
+    let output = stdout();
+    let output = output.lock();
 
-    let mut output = BufWriter::new(output);
     let mut error = BufWriter::new(error);
+    let mut output = BufWriter::new(output);
 
     db.select(expression, vacuum, |path, vacuumed| {
         if vacuumed {
