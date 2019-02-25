@@ -68,7 +68,7 @@ fn app() -> AppResultU {
         let check = matches.is_present("check-extension");
         let tag_generator = matches.value_of("tag-script");
         command_load_list(&db, check, &paths, tag_generator)?;
-    } else if matches.subcommand_matches("reset").is_some() {
+    } else if matches.is_present("reset") {
         command_reset(&db)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
