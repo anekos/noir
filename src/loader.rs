@@ -62,7 +62,8 @@ impl<'a> Loader<'a> {
 
     fn load_directory<T: AsRef<Path>>(&mut self, directory: &T) -> AppResultU {
         println!("Loading: {:?}", directory.as_ref());
-        for entry in WalkDir::new(directory).into_iter().filter_map(|e| e.ok()) {
+        let walker = WalkDir::new(directory).follow_links(true);
+        for entry in walker.into_iter().filter_map(|it| it.ok()).filter(|it| it.file_type().is_file()) {
             self.load_file(&entry.path())?;
         }
         Ok(())
