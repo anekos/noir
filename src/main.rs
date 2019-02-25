@@ -183,7 +183,7 @@ fn command_reset(db: &Database) -> AppResultU {
     print!("Are you sure? (yes/NO): ");
     stdout().flush()?;
     stdin.read_line(&mut input)?;
-    if input.to_lowercase() == "yes" {
+    if input.to_lowercase() == "yes\n" {
         db.reset()?;
         println!("All data have been deleted.")
     } else {
