@@ -45,14 +45,15 @@ impl<'a> Loader<'a> {
         if self.check_extension && !has_image_extension(file)? {
             return Ok(());
         }
-        if let Ok(meta) = Meta::from_file(file) {
+        let file = file.as_ref().canonicalize()?;
+        if let Ok(meta) = Meta::from_file(&file) {
             self.count += 1;
             if self.count % 100 == 0 {
                 self.db.flush()?;
             }
-            let tags = self.generate_tags(file)?;
+            let tags = self.generate_tags(&file)?;
             let tags: Vec<&str> = tags.iter().map(|it| it.as_ref()).collect();
-            self.db.set_tags(from_path(file)?, &tags)?;
+            self.db.set_tags(from_path(&file)?, &tags)?;
             self.db.insert(&meta)?;
             println!("{}", meta);
         }
