@@ -84,7 +84,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str) -> AppResultU {
+    pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str, bool) -> AppResultU {
         use crate::meta::*;
 
         let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
@@ -106,16 +106,11 @@ impl Database {
 
         for it in iter {
             let it = it?;
-            if vacuum {
-                let path = Path::new(&it.file.path);
-                if path.is_file() {
-                    f(&it.file.path)?;
-                } else {
-                    self.delete_path(&it.file.path)?;
-                }
-            } else {
-                f(&it.file.path)?;
+            let vacuumed = vacuum && !Path::new(&it.file.path).is_file();
+            if vacuumed {
+                self.delete_path(&it.file.path)?;
             }
+            f(&it.file.path, vacuumed)?;
         }
 
         Ok(())

@@ -1,6 +1,6 @@
 
 use std::fs::File;
-use std::io::{BufReader, BufWriter, stdin, stdout, Write};
+use std::io::{BufReader, BufWriter, stderr, stdin, stdout, Write};
 use std::process::exit;
 use std::path::Path;
 
@@ -155,9 +155,18 @@ fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], t
 fn command_select(db: &Database, expression: &str, vacuum: bool) -> AppResultU {
     let output = stdout();
     let output = output.lock();
+    let error = stderr();
+    let error = error.lock();
+
     let mut output = BufWriter::new(output);
-    db.select(expression, vacuum, |path| {
-        writeln!(output, "{}", path)?;
+    let mut error = BufWriter::new(error);
+
+    db.select(expression, vacuum, |path, vacuumed| {
+        if vacuumed {
+            writeln!(error, "Vacuumed: {}", path)?;
+        } else {
+            writeln!(output, "{}", path)?;
+        }
         Ok(())
     })
 }
