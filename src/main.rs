@@ -2,7 +2,7 @@
 use std::fs::File;
 use std::io::{BufReader, BufWriter, stdin, stdout, Write};
 use std::process::exit;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use if_let_return::if_let_some;
@@ -16,7 +16,7 @@ mod meta;
 
 use crate::alias::AliasTable;
 use crate::database::Database;
-use crate::errors::{AppError, AppResultU};
+use crate::errors::{AppError, AppResultU, from_path};
 
 
 
@@ -36,17 +36,17 @@ fn main() {
 
 fn app() -> AppResultU {
     let matches = crate::args::build_cli().get_matches();
-    let db = {
-        let path: PathBuf = if let Some(path) = matches.value_of("database-path") {
+    let db_file = {
+        if let Some(path) = matches.value_of("database-path") {
             Path::new(path).to_owned()
         } else {
             let mut path = get_app_dir(AppDataType::UserData, &APP_INFO, "db")?;
             let name = matches.value_of("database-name").unwrap_or("default");
             path.push(format!("{}.sqlite", name));
             path
-        };
-        Database::open(&path)?
+        }
     };
+    let db = Database::open(&db_file)?;
     let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
     let mut aliases = AliasTable::open(&aliases_file)?;
 
@@ -68,6 +68,8 @@ fn app() -> AppResultU {
         let check = matches.is_present("check-extension");
         let tag_generator = matches.value_of("tag-script");
         command_load_list(&db, check, &paths, tag_generator)?;
+    } else if matches.is_present("path") {
+        println!("{}", from_path(&db_file)?);
     } else if matches.is_present("reset") {
         command_reset(&db)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
