@@ -14,7 +14,7 @@ use crate::errors::{AppError, AppResult, from_os_str};
 pub struct Meta {
     pub animation: bool,
     pub dimensions: Dimensions,
-    pub mime_type: &'static str,
+    pub r#type: &'static str,
     pub file: FileMeta,
 }
 
@@ -59,7 +59,7 @@ impl std::fmt::Display for Meta {
             self.file.path,
             self.dimensions.width,
             self.dimensions.height,
-            self.mime_type,
+            self.r#type,
             self.animation)
     }
 }
@@ -89,9 +89,9 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> Result<Meta, imme
         _ => false,
     };
 
-    let mut mime_type = meta.mime_type();
-    if mime_type.starts_with(IMAGE_PREFIX) {
-        mime_type = &mime_type[IMAGE_PREFIX.len() ..];
+    let mut r#type = meta.mime_type();
+    if r#type.starts_with(IMAGE_PREFIX) {
+        r#type = &r#type[IMAGE_PREFIX.len() ..];
     }
 
     let meta = Meta {
@@ -101,7 +101,7 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> Result<Meta, imme
             width: dimensions.width,
         },
         file: file_meta,
-        mime_type,
+        r#type,
     };
 
     Ok(meta)

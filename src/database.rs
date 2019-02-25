@@ -66,7 +66,7 @@ impl Database {
             &meta.dimensions.height,
             &width,
             &height,
-            &meta.mime_type,
+            &meta.r#type,
             &meta.animation,
             &(meta.file.size as u32),
             &meta.file.created.as_ref(),
@@ -144,7 +144,10 @@ fn from_row(row: &Row) -> Meta {
             width: row.get(1),
             height: row.get(2),
         },
-        mime_type: "hoge",
+        r#type: {
+            let t: String = row.get(5);
+            ["png", "gif", "jpeg", "webp"].into_iter().find(|it| **it == &*t).expect("Unknown mime type")
+        },
         file: FileMeta {
             path: row.get(0),
             size: row.get(7),
