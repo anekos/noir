@@ -61,6 +61,8 @@ pub fn build_cli() -> App<'static, 'static> {
                          .required(true)
                          .min_values(0))
                     .arg(check))
+        .subcommand(SubCommand::with_name("reset")
+                    .about("Clear all data"))
         .subcommand(SubCommand::with_name("select")
                     .alias("s")
                     .about("Select SQL")

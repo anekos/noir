@@ -68,6 +68,8 @@ fn app() -> AppResultU {
         let check = matches.is_present("check-extension");
         let tag_generator = matches.value_of("tag-script");
         command_load_list(&db, check, &paths, tag_generator)?;
+    } else if matches.subcommand_matches("reset").is_some() {
+        command_reset(&db)?;
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         command_select(&db, &join(&wheres, Some(&aliases)))?;
@@ -171,6 +173,21 @@ fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
 
 fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
     db.set_tags(path, tags)
+}
+
+fn command_reset(db: &Database) -> AppResultU {
+    let stdin = stdin();
+    let mut input = "".to_owned();
+    print!("Are you sure? (yes/NO): ");
+    stdout().flush()?;
+    stdin.read_line(&mut input)?;
+    if input.to_lowercase() == "yes" {
+        db.reset()?;
+        println!("All data have been deleted.")
+    } else {
+        println!("Canceled")
+    }
+    Ok(())
 }
 
 fn command_unalias(aliases: &mut AliasTable, name: &str) {

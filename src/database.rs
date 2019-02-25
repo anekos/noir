@@ -71,6 +71,13 @@ impl Database {
         Ok(Database { connection })
     }
 
+    pub fn reset(&self) -> AppResultU {
+        self.connection.execute("DELETE FROM images", NO_PARAMS)?;
+        self.connection.execute("DELETE FROM tags", NO_PARAMS)?;
+        self.flush()?;
+        Ok(())
+    }
+
     pub fn select<F>(&self, where_expression: &str, mut f: F) -> AppResultU where F: FnMut(&str) -> AppResultU {
         use crate::meta::*;
 
