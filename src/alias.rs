@@ -11,6 +11,9 @@ use crate::errors::{AppResult, AppResultU};
 
 
 
+const TAG_PATTERN: &str = "[a-zA-Z0-9][-_a-zA-Z0-9]*";
+
+
 #[derive(Debug, Default)]
 pub struct AliasTable {
     table: HashMap<String, Alias>,
@@ -29,10 +32,10 @@ impl AliasTable {
 
     pub fn expand(&self, expression: &str) -> String {
         if self.table.is_empty() {
-            return expression.to_owned();
+            return untag(expression);
         }
         let pattern = self.keywords_pattern();
-        pattern.replace_all(
+        let result = pattern.replace_all(
             expression,
             |captures: &Captures| {
                 let name = captures.get(0).unwrap().as_str();
@@ -42,7 +45,8 @@ impl AliasTable {
                 } else {
                     alias.expression.clone()
                 }
-            }).to_string()
+            });
+        untag(&result)
     }
 
     pub fn names(&self) -> Vec<&str> {
@@ -91,6 +95,16 @@ impl AliasTable {
     }
 }
 
+fn untag(expression: &str) -> String {
+    let pattern = Regex::new(&format!("#({})", TAG_PATTERN)).unwrap();
+    pattern.replace_all(
+        &expression,
+        |captures: &Captures| {
+            let tag = captures.get(1).unwrap().as_str();
+            format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)
+        }).to_string()
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -104,6 +118,15 @@ mod tests {
         assert_eq!(aliases.expand("begin hoge"), "begin fuga".to_owned());
         assert_eq!(aliases.expand("hoge"), "fuga".to_owned());
         assert_eq!(aliases.expand("<hoge>"), "<fuga>".to_owned());
+    }
+
+    #[test]
+    fn test_tag_expandable() {
+        let aliases = crate::alias::AliasTable::default();
+
+        assert_eq!(
+            aliases.expand("begin #hoge end"),
+            "begin (path in (SELECT path FROM tags WHERE tag = 'hoge')) end".to_owned());
     }
 
     #[test]

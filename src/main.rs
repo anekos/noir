@@ -59,6 +59,9 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
+    } else if let Some(ref matches) = matches.subcommand_matches("expand") {
+        let expression = matches.value_of("expression").unwrap();
+        println!("{}", aliases.expand(expression));
     } else if let Some(ref matches) = matches.subcommand_matches("get") {
         let path = matches.value_of("path").unwrap();
         command_get(&db, path)?;
