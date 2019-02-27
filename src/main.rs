@@ -5,6 +5,7 @@ use std::process::exit;
 use std::path::Path;
 
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
+use clap::ArgMatches;
 use if_let_return::if_let_some;
 use serde_json;
 
@@ -18,6 +19,7 @@ mod meta;
 use crate::alias::AliasTable;
 use crate::database::Database;
 use crate::errors::{AppError, AppResultU, from_path};
+use crate::loader::Config;
 
 
 
@@ -68,14 +70,10 @@ fn app() -> AppResultU {
         command_get(&db, path)?;
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
-        let check = matches.is_present("check-extension");
-        let tag_generator = matches.value_of("tag-script");
-        command_load(&db, check, &paths, tag_generator)?;
+        command_load(&db, &paths, extract_loader_config(matches))?;
     } else if let Some(ref matches) = matches.subcommand_matches("load-list") {
         let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
-        let check = matches.is_present("check-extension");
-        let tag_generator = matches.value_of("tag-script");
-        command_load_list(&db, check, &paths, tag_generator)?;
+        command_load_list(&db, &paths, extract_loader_config(matches))?;
     } else if matches.is_present("path") {
         println!("{}", from_path(&db_file)?);
     } else if matches.is_present("reset") {
@@ -153,8 +151,7 @@ fn command_get(db: &Database, path: &str) -> AppResultU {
     Ok(())
 }
 
-fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let config = loader::Config { check_extension, tag_generator };
+fn command_load(db: &Database, paths: &[&str], config: Config) -> AppResultU {
     let mut loader = loader::Loader::new(db, config);
     for path in paths {
         loader.load(&path)?;
@@ -162,8 +159,7 @@ fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_genera
     Ok(())
 }
 
-fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let config = loader::Config { check_extension, tag_generator };
+fn command_load_list(db: &Database, mut paths: &[&str], config: Config) -> AppResultU {
     let mut loader = loader::Loader::new(db, config);
     if paths.is_empty() {
         paths = &["-"];
@@ -234,6 +230,13 @@ fn command_reset(db: &Database) -> AppResultU {
 
 fn command_unalias(aliases: &mut AliasTable, name: &str) {
     aliases.unalias(name);
+}
+
+fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
+    let check_extension = matches.is_present("check-extension");
+    let tag_generator = matches.value_of("tag-script");
+    let update = matches.is_present("update");
+    Config { check_extension, tag_generator, update }
 }
 
 fn join(strings: &[&str], aliases: Option<&AliasTable>) -> String {

@@ -15,6 +15,7 @@ use crate::database::Database;
 pub struct Config<'a> {
     pub check_extension: bool,
     pub tag_generator: Option<&'a str>,
+    pub update: bool,
 }
 
 pub struct Loader<'a> {
@@ -46,10 +47,13 @@ impl<'a> Loader<'a> {
     }
 
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
-        if self.config.check_extension && !has_image_extension(file)? {
+        let file = file.as_ref().canonicalize()?;
+        if !self.config.update && self.db.path_exists(from_path(&file)?)? {
             return Ok(());
         }
-        let file = file.as_ref().canonicalize()?;
+        if self.config.check_extension && !has_image_extension(&file)? {
+            return Ok(());
+        }
         if let Ok(meta) = Meta::from_file(&file) {
             self.count += 1;
             if self.count % 100 == 0 {

@@ -90,6 +90,11 @@ impl Database {
         Ok(Database { connection })
     }
 
+    pub fn path_exists(&self, path: &str) -> AppResult<bool> {
+        let mut stmt = self.connection.prepare("SELECT 1 FROM images WHERE path = ?;")?;
+        Ok(stmt.exists(&[&path as &ToSql])?)
+    }
+
     pub fn reset(&self) -> AppResultU {
         self.connection.execute("DELETE FROM images", NO_PARAMS)?;
         self.connection.execute("DELETE FROM tags", NO_PARAMS)?;
