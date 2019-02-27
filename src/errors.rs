@@ -23,8 +23,10 @@ pub enum AppError {
     ImageLoading(immeta::Error, String),
     #[fail(display = "IO error: {}", 0)]
     Io(std::io::Error),
+    #[fail(display = "JSON Error: {}", 0)]
+    SerdeJson(serde_json::Error),
     #[fail(display = "YAML Error: {}", 0)]
-    Serde(serde_yaml::Error),
+    SerdeYaml(serde_yaml::Error),
     #[fail(display = "Database error: {}", 0)]
     Sqlite(rusqlite::Error),
     #[fail(display = "UTF-8 error")]
@@ -49,7 +51,8 @@ macro_rules! define_error {
 define_error!(app_dirs::AppDirsError, AppDir);
 define_error!(clap::Error, Clap);
 define_error!(rusqlite::Error, Sqlite);
-define_error!(serde_yaml::Error, Serde);
+define_error!(serde_json::Error, SerdeJson);
+define_error!(serde_yaml::Error, SerdeYaml);
 define_error!(walkdir::Error, DirectoryWalking);
 define_error!(std::string::FromUtf8Error, Utf8);
 

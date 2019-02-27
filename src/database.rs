@@ -3,11 +3,10 @@ use std::fs::create_dir_all;
 use std::path::Path;
 
 use rusqlite::types::ToSql;
-use rusqlite::{Connection, NO_PARAMS};
+use rusqlite::{Connection, NO_PARAMS, Row};
 
-use crate::errors::{AppResult, AppResultU};
+use crate::errors::{AppResult, AppResultU, from_path};
 use crate::meta::Meta;
-
 
 
 
@@ -45,6 +44,18 @@ impl Database {
         self.connection.execute("COMMIT;", NO_PARAMS)?;
         self.connection.execute("BEGIN;", NO_PARAMS)?;
         Ok(())
+    }
+
+    pub fn get(&self, path: &str) -> AppResult<Option<Meta>> {
+        let path = Path::new(path).canonicalize().unwrap_or_else(|_| Path::new(path).to_path_buf());
+        let path = from_path(&path)?;
+        let mut stmt = self.connection.prepare("SELECT * FROM images WHERE path = ?1")?;
+        let mut iter = stmt.query_map(&[&path as &ToSql], from_row)?;
+        if let Some(found) = iter.next() {
+            Ok(Some(found?))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn insert(&self, meta: &Meta) -> AppResultU {
@@ -85,24 +96,8 @@ impl Database {
     }
 
     pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str, bool) -> AppResultU {
-        use crate::meta::*;
-
         let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
-        let iter = stmt.query_map(NO_PARAMS, |row| Meta {
-            animation: row.get(6),
-            dimensions: Dimensions {
-                width: row.get(1),
-                height: row.get(2),
-            },
-            mime_type: "hoge",
-            file: FileMeta {
-                path: row.get(0),
-                size: row.get(7),
-                created: row.get(8),
-                modified: row.get(9),
-                accessed: row.get(10),
-            },
-        })?;
+        let iter = stmt.query_map(NO_PARAMS, from_row)?;
 
         for it in iter {
             let it = it?;
@@ -138,4 +133,24 @@ fn create_table(conn: &Connection) -> AppResultU {
     let sql: &'static str = include_str!("create_tags_index.sql");
     conn.execute(sql, NO_PARAMS)?;
     Ok(())
+}
+
+fn from_row(row: &Row) -> Meta {
+    use crate::meta::*;
+
+    Meta {
+        animation: row.get(6),
+        dimensions: Dimensions {
+            width: row.get(1),
+            height: row.get(2),
+        },
+        mime_type: "hoge",
+        file: FileMeta {
+            path: row.get(0),
+            size: row.get(7),
+            created: row.get(8),
+            modified: row.get(9),
+            accessed: row.get(10),
+        },
+    }
 }

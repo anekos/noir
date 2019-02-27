@@ -6,6 +6,7 @@ use std::path::Path;
 
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use if_let_return::if_let_some;
+use serde_json;
 
 mod alias;
 mod args;
@@ -58,6 +59,9 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
+    } else if let Some(ref matches) = matches.subcommand_matches("get") {
+        let path = matches.value_of("path").unwrap();
+        command_get(&db, path)?;
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         let check = matches.is_present("check-extension");
@@ -122,6 +126,16 @@ fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Opti
         Ok(())
     });
     aliases.alias(name.to_owned(), join(&expressions, None), recursive);
+    Ok(())
+}
+
+fn command_get(db: &Database, path: &str) -> AppResultU {
+    if let Some(meta) = db.get(path)? {
+        println!("{}", serde_json::to_string_pretty(&meta)?);
+    } else {
+        eprintln!("Entry Not found");
+        exit(1);
+    }
     Ok(())
 }
 

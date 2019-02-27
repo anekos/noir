@@ -4,12 +4,13 @@ use std::path::Path;
 use chrono::DateTime;
 use chrono::offset::Utc;
 use immeta;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::{AppError, AppResult, from_os_str};
 
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Meta {
     pub animation: bool,
     pub dimensions: Dimensions,
@@ -17,13 +18,13 @@ pub struct Meta {
     pub file: FileMeta,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Dimensions {
     pub height: u32,
     pub width: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileMeta {
     pub path: String,
     pub size: u32,
