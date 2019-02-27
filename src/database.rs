@@ -146,7 +146,7 @@ fn from_row(row: &Row) -> Meta {
         },
         r#type: {
             let t: String = row.get(5);
-            ["png", "gif", "jpeg", "webp"].into_iter().find(|it| **it == &*t).expect("Unknown mime type")
+            ["png", "gif", "jpeg", "webp"].iter().find(|it| **it == &*t).expect("Unknown mime type")
         },
         file: FileMeta {
             path: row.get(0),
