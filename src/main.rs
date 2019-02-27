@@ -49,7 +49,7 @@ fn app() -> AppResultU {
     };
     let db = Database::open(&db_file)?;
     let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
-    let mut aliases = AliasTable::open(&aliases_file)?;
+    let mut aliases = AliasTable::open(&aliases_file, &db)?;
 
     if let Some(ref matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name");

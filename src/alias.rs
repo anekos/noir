@@ -7,16 +7,15 @@ use std::path::Path;
 use regex::{Captures, Regex};
 use serde_derive::{Deserialize, Serialize};
 
+use crate::database::Database;
 use crate::errors::{AppResult, AppResultU};
 
-
-
-const TAG_PATTERN: &str = "[a-zA-Z0-9][-_a-zA-Z0-9]*";
 
 
 #[derive(Debug, Default)]
 pub struct AliasTable {
     table: HashMap<String, Alias>,
+    tags: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -32,7 +31,7 @@ impl AliasTable {
 
     pub fn expand(&self, expression: &str) -> String {
         if self.table.is_empty() {
-            return untag(expression);
+            return self.untag(expression);
         }
         let pattern = self.keywords_pattern();
         let result = pattern.replace_all(
@@ -46,7 +45,7 @@ impl AliasTable {
                     alias.expression.clone()
                 }
             });
-        untag(&result)
+        self.untag(&result)
     }
 
     pub fn names(&self) -> Vec<&str> {
@@ -55,17 +54,23 @@ impl AliasTable {
         result
     }
 
-    pub fn open<T: AsRef<Path>>(path: &T) -> AppResult<Self> {
+    pub fn open<T: AsRef<Path>>(path: &T, db: &Database) -> AppResult<Self> {
         let path = path.as_ref().to_path_buf();
 
         if !path.is_file() {
-            return Ok(AliasTable { table: HashMap::default() });
+            return Ok(AliasTable {
+                table: HashMap::default(),
+                tags: db.tags()?,
+            });
         }
 
         let mut file = File::open(&path)?;
         let mut source = "".to_owned();
         let _ = file.read_to_string(&mut source)?;
-        Ok(AliasTable { table: serde_yaml::from_str(&source)? })
+        Ok(AliasTable {
+            table: serde_yaml::from_str(&source)?,
+            tags: db.tags()?,
+        })
     }
 
     pub fn save<T: AsRef<Path>>(&self, path: &T) -> AppResultU {
@@ -78,31 +83,44 @@ impl AliasTable {
         Ok(())
     }
 
+    fn tags_pattern(&self) -> Regex {
+        let tags: Vec<&str> = self.tags.iter().map(|it| it.as_ref()).collect();
+        word_pattern(&tags, "#")
+    }
+
     pub fn unalias(&mut self, name: &str) {
         self.table.remove(name);
     }
 
-    fn keywords_pattern(&self) -> Regex {
-        let mut result = "".to_owned();
-        for key in self.table.keys() {
-            let key = regex::escape(&key);
-            if !result.is_empty() {
-                result.push('|');
-            }
-            result.push_str(&key);
+    fn untag(&self, expression: &str) -> String {
+        if self.tags.is_empty() {
+            return expression.to_owned();
         }
-        Regex::new(&format!("\\b(?:{})\\b", result)).unwrap()
+        let pattern = self.tags_pattern();
+        pattern.replace_all(
+            &expression,
+            |captures: &Captures| {
+                let tag = captures.get(1).unwrap().as_str();
+                format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)
+            }).to_string()
+    }
+
+    fn keywords_pattern(&self) -> Regex {
+        let keys: Vec<&str> = self.table.keys().map(|it| it.as_str()).collect();
+        word_pattern(&keys, "\\b")
     }
 }
 
-fn untag(expression: &str) -> String {
-    let pattern = Regex::new(&format!("#({})", TAG_PATTERN)).unwrap();
-    pattern.replace_all(
-        &expression,
-        |captures: &Captures| {
-            let tag = captures.get(1).unwrap().as_str();
-            format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)
-        }).to_string()
+fn word_pattern(words: &[&str], prefix: &str) -> Regex {
+    let mut result = "".to_owned();
+    for word in words {
+        let word = regex::escape(&word);
+        if !result.is_empty() {
+            result.push('|');
+        }
+        result.push_str(&word);
+    }
+    Regex::new(&format!("{}({})\\b", prefix, result)).unwrap()
 }
 
 
@@ -122,7 +140,8 @@ mod tests {
 
     #[test]
     fn test_tag_expandable() {
-        let aliases = crate::alias::AliasTable::default();
+        let mut aliases = crate::alias::AliasTable::default();
+        aliases.tags.push("hoge".to_owned());
 
         assert_eq!(
             aliases.expand("begin #hoge end"),
@@ -137,6 +156,15 @@ mod tests {
         assert_eq!(aliases.expand("beginhogeend"), "beginhogeend".to_owned());
         assert_eq!(aliases.expand("a"), "a".to_owned());
         assert_eq!(aliases.expand("1"), "1".to_owned());
+    }
+
+    #[test]
+    fn test_tag_non_expandable() {
+        let aliases = crate::alias::AliasTable::default();
+
+        assert_eq!(
+            aliases.expand("begin #hoge end"),
+            "begin #hoge end".to_owned());
     }
 
     #[test]

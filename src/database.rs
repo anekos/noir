@@ -111,6 +111,12 @@ impl Database {
         Ok(())
     }
 
+    pub fn tags(&self) -> AppResult<Vec<String>> {
+        let mut stmt = self.connection.prepare("SELECT tag FROM tags")?;
+        let result: rusqlite::Result<Vec<String>> = stmt.query_map(NO_PARAMS, |row: &Row| row.get(0))?.collect();
+        Ok(result?)
+    }
+
     pub fn remove_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
         for tag in tags {
             let args = &[tag, path];
