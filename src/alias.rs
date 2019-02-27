@@ -1,4 +1,5 @@
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions, create_dir_all};
 use std::io::{Read, Write};
@@ -30,22 +31,8 @@ impl AliasTable {
     }
 
     pub fn expand(&self, expression: &str) -> String {
-        if self.table.is_empty() {
-            return self.untag(expression);
-        }
-        let pattern = self.keywords_pattern();
-        let result = pattern.replace_all(
-            expression,
-            |captures: &Captures| {
-                let name = captures.get(0).unwrap().as_str();
-                let alias = &self.table[name];
-                if alias.recursive {
-                    self.expand(&alias.expression)
-                } else {
-                    alias.expression.clone()
-                }
-            });
-        self.untag(&result)
+        let result = self.unkeyword(expression);
+        self.untag(&result).to_string()
     }
 
     pub fn names(&self) -> Vec<&str> {
@@ -92,9 +79,27 @@ impl AliasTable {
         self.table.remove(name);
     }
 
-    fn untag(&self, expression: &str) -> String {
+    fn unkeyword<'a>(&self, expression: &'a str) -> Cow<'a, str> {
+        if self.table.is_empty() {
+            return expression.into()
+        }
+        let pattern = self.keywords_pattern();
+        pattern.replace_all(
+            expression,
+            |captures: &Captures| {
+                let name = captures.get(0).unwrap().as_str();
+                let alias = &self.table[name];
+                if alias.recursive {
+                    self.expand(&alias.expression)
+                } else {
+                    alias.expression.clone()
+                }
+            })
+    }
+
+    fn untag<'a>(&self, expression: &'a str) -> Cow<'a, str> {
         if self.tags.is_empty() {
-            return expression.to_owned();
+            return expression.into();
         }
         let pattern = self.tags_pattern();
         pattern.replace_all(
@@ -102,7 +107,7 @@ impl AliasTable {
             |captures: &Captures| {
                 let tag = captures.get(1).unwrap().as_str();
                 format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)
-            }).to_string()
+            })
     }
 
     fn keywords_pattern(&self) -> Regex {
