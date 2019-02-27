@@ -112,7 +112,7 @@ impl Database {
     }
 
     pub fn tags(&self) -> AppResult<Vec<String>> {
-        let mut stmt = self.connection.prepare("SELECT tag FROM tags")?;
+        let mut stmt = self.connection.prepare("SELECT DISTINCT tag FROM tags ORDER BY length(tag)")?;
         let result: rusqlite::Result<Vec<String>> = stmt.query_map(NO_PARAMS, |row: &Row| row.get(0))?.collect();
         Ok(result?)
     }
