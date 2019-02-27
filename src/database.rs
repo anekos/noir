@@ -10,6 +10,8 @@ use crate::meta::Meta;
 
 
 
+pub const SELECT_PREFIX: &str = "SELECT * FROM images WHERE ";
+
 pub struct Database {
     connection: Connection,
 }
@@ -96,7 +98,7 @@ impl Database {
     }
 
     pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str, bool) -> AppResultU {
-        let mut stmt = self.connection.prepare(&format!("SELECT * FROM images WHERE {}", where_expression))?;
+        let mut stmt = self.connection.prepare(&format!("{}{}", SELECT_PREFIX, where_expression))?;
         let iter = stmt.query_map(NO_PARAMS, from_row)?;
 
         for it in iter {

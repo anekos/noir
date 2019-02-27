@@ -61,7 +61,8 @@ fn app() -> AppResultU {
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
     } else if let Some(ref matches) = matches.subcommand_matches("expand") {
         let expression = matches.value_of("expression").unwrap();
-        println!("{}", aliases.expand(expression));
+        let full = matches.is_present("full");
+        command_expand(&aliases, expression, full);
     } else if let Some(ref matches) = matches.subcommand_matches("get") {
         let path = matches.value_of("path").unwrap();
         command_get(&db, path)?;
@@ -130,6 +131,16 @@ fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Opti
     });
     aliases.alias(name.to_owned(), join(&expressions, None), recursive);
     Ok(())
+}
+
+fn command_expand(aliases: &AliasTable, expression: &str, full: bool) {
+    let expanded = aliases.expand(expression);
+    if full {
+        println!("{}{}", crate::database::SELECT_PREFIX, expanded);
+    } else {
+        println!("{}", expanded);
+    }
+
 }
 
 fn command_get(db: &Database, path: &str) -> AppResultU {
