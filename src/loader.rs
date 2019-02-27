@@ -12,17 +12,21 @@ use crate::database::Database;
 
 
 
+pub struct Config<'a> {
+    pub check_extension: bool,
+    pub tag_generator: Option<&'a str>,
+}
+
 pub struct Loader<'a> {
-    check_extension: bool,
-    db: &'a Database,
-    tag_generator: Option<&'a str>,
+    config: Config<'a>,
     count: usize,
+    db: &'a Database,
 }
 
 
 impl<'a> Loader<'a> {
-    pub fn new(db: &'a Database, check_extension: bool, tag_generator: Option<&'a str>) -> Self {
-        Loader { db, check_extension, tag_generator, count: 0 }
+    pub fn new(db: &'a Database, config: Config<'a>) -> Self {
+        Loader { config, count: 0, db }
     }
 
     pub fn load<T: AsRef<Path>>(&mut self, path: &T) -> AppResultU {
@@ -42,7 +46,7 @@ impl<'a> Loader<'a> {
     }
 
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
-        if self.check_extension && !has_image_extension(file)? {
+        if self.config.check_extension && !has_image_extension(file)? {
             return Ok(());
         }
         let file = file.as_ref().canonicalize()?;
@@ -70,7 +74,7 @@ impl<'a> Loader<'a> {
     }
 
     fn generate_tags<T: AsRef<Path>>(&self, file: &T) -> AppResult<Vec<String>> {
-        if_let_some!(tag_generator = self.tag_generator, Ok(vec!()));
+        if_let_some!(tag_generator = self.config.tag_generator, Ok(vec!()));
         let mut command = Command::new(tag_generator);
         command.args(&[file.as_ref().as_os_str()]);
         command.stdout(Stdio::piped());

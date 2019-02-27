@@ -154,7 +154,8 @@ fn command_get(db: &Database, path: &str) -> AppResultU {
 }
 
 fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let mut loader = loader::Loader::new(db, check_extension, tag_generator);
+    let config = loader::Config { check_extension, tag_generator };
+    let mut loader = loader::Loader::new(db, config);
     for path in paths {
         loader.load(&path)?;
     }
@@ -162,7 +163,8 @@ fn command_load(db: &Database, check_extension: bool, paths: &[&str], tag_genera
 }
 
 fn command_load_list(db: &Database, check_extension: bool, mut paths: &[&str], tag_generator: Option<&str>) -> AppResultU {
-    let mut loader = loader::Loader::new(db, check_extension, tag_generator);
+    let config = loader::Config { check_extension, tag_generator };
+    let mut loader = loader::Loader::new(db, config);
     if paths.is_empty() {
         paths = &["-"];
     }
