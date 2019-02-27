@@ -146,11 +146,15 @@ mod tests {
     #[test]
     fn test_tag_expandable() {
         let mut aliases = crate::alias::AliasTable::default();
-        aliases.tags.push("hoge".to_owned());
+        aliases.alias("hoge".to_owned(), "fuga".to_owned(), false);
+        aliases.tags.push("moge".to_owned());
 
         assert_eq!(
-            aliases.expand("begin #hoge end"),
-            "begin (path in (SELECT path FROM tags WHERE tag = 'hoge')) end".to_owned());
+            aliases.expand("begin #moge end"),
+            "begin (path in (SELECT path FROM tags WHERE tag = 'moge')) end".to_owned());
+        assert_eq!(
+            aliases.expand("begin #moge"),
+            "begin (path in (SELECT path FROM tags WHERE tag = 'moge'))".to_owned());
     }
 
     #[test]
