@@ -16,18 +16,24 @@ pub struct Database {
     connection: Connection,
 }
 
+macro_rules! sql {
+    ($name:tt) => {
+        include_str!(concat!("sql/", stringify!($name), ".sql"))
+    }
+}
+
 
 impl Database {
     pub fn add_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
         for tag in tags {
             let args = &[tag, path];
-            self.connection.execute(include_str!("insert_tag.sql"), args)?;
+            self.connection.execute(sql!(insert_tag), args)?;
         }
         Ok(())
     }
 
     pub fn clear_tags(&self, path: &str) -> AppResultU {
-        self.connection.execute(include_str!("clear_tags.sql"), &[path])?;
+        self.connection.execute(sql!(clear_tags), &[path])?;
         Ok(())
     }
 
@@ -75,8 +81,8 @@ impl Database {
             &meta.file.modified.as_ref(),
             &meta.file.accessed.as_ref(),
         ];
-        self.connection.execute(include_str!("update.sql"), args)?;
-        self.connection.execute(include_str!("insert.sql"), args)?;
+        self.connection.execute(sql!(update_image), args)?;
+        self.connection.execute(sql!(insert_image), args)?;
         Ok(())
     }
 
@@ -127,7 +133,7 @@ impl Database {
     pub fn remove_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
         for tag in tags {
             let args = &[tag, path];
-            self.connection.execute(include_str!("remove_tag.sql"), args)?;
+            self.connection.execute(sql!(remove_tag), args)?;
         }
         Ok(())
     }
@@ -139,12 +145,13 @@ impl Database {
 }
 
 fn create_table(conn: &Connection) -> AppResultU {
-    let sql: &'static str = include_str!("create_images_table.sql");
-    conn.execute(sql, NO_PARAMS)?;
-    let sql: &'static str = include_str!("create_tags_table.sql");
-    conn.execute(sql, NO_PARAMS)?;
-    let sql: &'static str = include_str!("create_tags_index.sql");
-    conn.execute(sql, NO_PARAMS)?;
+    fn create(conn: &Connection, sql: &str) -> AppResultU {
+        conn.execute(sql, NO_PARAMS)?;
+        Ok(())
+    }
+    create(conn, sql!(create_images_table))?;
+    create(conn, sql!(create_tags_table))?;
+    create(conn, sql!(create_tags_index))?;
     Ok(())
 }
 
