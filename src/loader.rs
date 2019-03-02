@@ -62,7 +62,7 @@ impl<'a> Loader<'a> {
             let tags = self.generate_tags(&file)?;
             let tags: Vec<&str> = tags.iter().map(|it| it.as_ref()).collect();
             self.db.set_tags(from_path(&file)?, &tags)?;
-            self.db.insert(&meta)?;
+            self.db.upsert(&meta)?;
             println!("{}", meta);
         }
         Ok(())

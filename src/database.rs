@@ -60,7 +60,7 @@ impl Database {
         }
     }
 
-    pub fn insert(&self, meta: &Meta) -> AppResultU {
+    pub fn upsert(&self, meta: &Meta) -> AppResultU {
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
             &meta.file.path as &ToSql,
