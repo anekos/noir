@@ -1,10 +1,12 @@
 
+use std::collections::HashMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
 use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS, Row};
 
+use crate::alias::Alias;
 use crate::errors::{AppResult, AppResultU, from_path};
 use crate::meta::Meta;
 
@@ -30,6 +32,22 @@ impl Database {
             self.connection.execute(sql!(insert_tag), args)?;
         }
         Ok(())
+    }
+
+    pub fn aliases(&self) -> AppResult<HashMap<String, Alias>> {
+        let mut stmt = self.connection.prepare("SELECT * FROM aliases")?;
+        let result: rusqlite::Result<HashMap<String, Alias>> = stmt.query_map(
+            NO_PARAMS,
+            |row: &Row|
+            (
+                row.get(0),
+                Alias {
+                    expression: row.get(1),
+                    recursive: row.get(2)
+                }
+            ))?.collect();
+
+        Ok(result?)
     }
 
     pub fn clear_tags(&self, path: &str) -> AppResultU {
@@ -86,6 +104,13 @@ impl Database {
         Ok(())
     }
 
+    pub fn upsert_alias(&self, name: &str, original: &str, recursive: bool) -> AppResultU {
+        let args = &[&name as &ToSql, &original as &ToSql, &recursive as &ToSql];
+        self.connection.execute(sql!(update_alias), args)?;
+        self.connection.execute(sql!(insert_alias), args)?;
+        Ok(())
+    }
+
     pub fn open<T: AsRef<Path>>(file: &T) -> AppResult<Self> {
         if let Some(dir) = file.as_ref().parent() {
             create_dir_all(dir)?;
@@ -130,10 +155,15 @@ impl Database {
         Ok(result?)
     }
 
-    pub fn remove_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+    pub fn delete_alias(&self, name: &str) -> AppResultU {
+        self.connection.execute("DELETE FROM aliases WHERE name = ?1", &[name])?;
+        Ok(())
+    }
+
+    pub fn delete_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
         for tag in tags {
             let args = &[tag, path];
-            self.connection.execute(sql!(remove_tag), args)?;
+            self.connection.execute(sql!(delete_tag), args)?;
         }
         Ok(())
     }
@@ -152,6 +182,7 @@ fn create_table(conn: &Connection) -> AppResultU {
     create(conn, sql!(create_images_table))?;
     create(conn, sql!(create_tags_table))?;
     create(conn, sql!(create_tags_index))?;
+    create(conn, sql!(create_aliases_table))?;
     Ok(())
 }
 
