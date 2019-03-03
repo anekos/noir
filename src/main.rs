@@ -13,12 +13,15 @@ mod alias;
 mod args;
 mod database;
 mod errors;
+mod expander;
+mod global_alias;
 mod loader;
 mod meta;
 
-use crate::alias::AliasTable;
 use crate::database::Database;
 use crate::errors::{AppError, AppResultU, from_path};
+use crate::expander::Expander;
+use crate::global_alias::GlobalAliasTable;
 use crate::loader::Config;
 
 
@@ -51,20 +54,21 @@ fn app() -> AppResultU {
     };
     let db = Database::open(&db_file)?;
     let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
-    let mut aliases = AliasTable::open(&aliases_file, &db)?;
+    let mut aliases = GlobalAliasTable::open(&aliases_file, &db)?;
 
     if let Some(ref matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name");
         let expressions: Option<Vec<&str>> = matches.values_of("expression").map(|it| it.collect());
         let recursive = matches.is_present("recursive");
-        command_alias(&mut aliases, name, expressions, recursive)?;
+        let local = matches.is_present("local");
+        command_alias(&db, aliases, name, expressions, recursive, local)?;
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
     } else if let Some(ref matches) = matches.subcommand_matches("expand") {
         let expression = matches.value_of("expression").unwrap();
         let full = matches.is_present("full");
-        command_expand(&aliases, expression, full);
+        command_expand(&db, aliases, expression, full)?;
     } else if let Some(ref matches) = matches.subcommand_matches("get") {
         let path = matches.value_of("path").unwrap();
         command_get(&db, path)?;
@@ -81,7 +85,7 @@ fn app() -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("select") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         let vacuum = matches.is_present("vacuum");
-        command_select(&db, &join(&wheres, Some(&aliases)), vacuum)?;
+        command_select(&db, aliases, &join(&wheres), vacuum)?;
     } else if let Some(ref matches) = matches.subcommand_matches("tag") {
         if let Some(ref matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -104,19 +108,20 @@ fn app() -> AppResultU {
         }
     } else if let Some(ref matches) = matches.subcommand_matches("unalias") {
         let name = matches.value_of("name").unwrap();
-        command_unalias(&mut aliases, name);
+        let local = matches.is_present("local");
+        command_unalias(&db, &mut aliases, name, local)?;
     } else {
         eprintln!("{}", matches.usage());
         exit(1);
     }
 
     db.close()?;
-    aliases.save(&aliases_file)?;
+    // aliases.save(&aliases_file)?;
 
     Ok(())
 }
 
-fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Option<Vec<&str>>, recursive: bool) -> AppResultU {
+fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str>, expressions: Option<Vec<&str>>, recursive: bool, local: bool) -> AppResultU {
     if_let_some!(name = name, {
         for name in aliases.names() {
             println!("{}", name);
@@ -124,21 +129,29 @@ fn command_alias(aliases: &mut AliasTable, name: Option<&str>, expressions: Opti
         Ok(())
     });
     if_let_some!(expressions = expressions, {
-        println!("{}", aliases.expand(name));
+        let expander = Expander::generate(db, aliases)?;
+        println!("{}", expander.expand(name));
         Ok(())
     });
-    aliases.alias(name.to_owned(), join(&expressions, None), recursive);
+    let expression = join(&expressions);
+    if local {
+        db.upsert_alias(name, &expression, recursive)?;
+    } else {
+        aliases.add(name.to_owned(), expression, recursive);
+        aliases.save()?;
+    }
     Ok(())
 }
 
-fn command_expand(aliases: &AliasTable, expression: &str, full: bool) {
-    let expanded = aliases.expand(expression);
+fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
+    let expander = Expander::generate(db, aliases)?;
+    let expanded = expander.expand(expression);
     if full {
         println!("{}{}", crate::database::SELECT_PREFIX, expanded);
     } else {
         println!("{}", expanded);
     }
-
+    Ok(())
 }
 
 fn command_get(db: &Database, path: &str) -> AppResultU {
@@ -178,7 +191,7 @@ fn command_load_list(db: &Database, mut paths: &[&str], config: Config) -> AppRe
     Ok(())
 }
 
-fn command_select(db: &Database, expression: &str, vacuum: bool) -> AppResultU {
+fn command_select(db: &Database, aliases: GlobalAliasTable, expression: &str, vacuum: bool) -> AppResultU {
     let error = stderr();
     let error = error.lock();
     let output = stdout();
@@ -187,7 +200,10 @@ fn command_select(db: &Database, expression: &str, vacuum: bool) -> AppResultU {
     let mut error = BufWriter::new(error);
     let mut output = BufWriter::new(output);
 
-    db.select(expression, vacuum, |path, vacuumed| {
+    let expander = Expander::generate(db, aliases)?;
+    let expression = expander.expand(expression);
+
+    db.select(&expression, vacuum, |path, vacuumed| {
         if vacuumed {
             writeln!(error, "Vacuumed: {}", path)?;
         } else {
@@ -206,7 +222,7 @@ fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
 }
 
 fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
-    db.remove_tags(path, tags)
+    db.delete_tags(path, tags)
 }
 
 fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
@@ -228,8 +244,14 @@ fn command_reset(db: &Database) -> AppResultU {
     Ok(())
 }
 
-fn command_unalias(aliases: &mut AliasTable, name: &str) {
-    aliases.unalias(name);
+fn command_unalias(db: &Database, aliases: &mut GlobalAliasTable, name: &str, local: bool) -> AppResultU {
+    if local {
+        db.delete_alias(name)?;
+    } else {
+        aliases.delete(name);
+        aliases.save()?;
+    }
+    Ok(())
 }
 
 fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
@@ -239,17 +261,13 @@ fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
     Config { check_extension, tag_generator, update }
 }
 
-fn join(strings: &[&str], aliases: Option<&AliasTable>) -> String {
+fn join(strings: &[&str]) -> String {
     let mut joined = "".to_owned();
     for (index, it) in strings.iter().enumerate() {
         if 0 < index {
             joined.push(' ');
         }
-        if let Some(aliases) = aliases {
-            joined.push_str(&aliases.expand(&it));
-        } else {
-            joined.push_str(it);
-        }
+        joined.push_str(it);
     }
     joined
 }
