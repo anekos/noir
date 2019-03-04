@@ -9,6 +9,7 @@ use rusqlite::{Connection, NO_PARAMS, Row};
 use crate::alias::Alias;
 use crate::errors::{AppResult, AppResultU, from_path};
 use crate::meta::Meta;
+use crate::tag::Tag;
 
 
 
@@ -26,9 +27,9 @@ macro_rules! sql {
 
 
 impl Database {
-    pub fn add_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+    pub fn add_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         for tag in tags {
-            let args = &[tag, path];
+            let args = &[&tag as &ToSql, &path as &ToSql];
             self.connection.execute(sql!(insert_tag), args)?;
         }
         Ok(())
@@ -160,15 +161,15 @@ impl Database {
         Ok(())
     }
 
-    pub fn delete_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+    pub fn delete_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         for tag in tags {
-            let args = &[tag, path];
+            let args = &[&tag as &ToSql, &path as &ToSql];
             self.connection.execute(sql!(delete_tag), args)?;
         }
         Ok(())
     }
 
-    pub fn set_tags(&self, path: &str, tags: &[&str]) -> AppResultU {
+    pub fn set_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         self.clear_tags(path)?;
         self.add_tags(path, tags)
     }

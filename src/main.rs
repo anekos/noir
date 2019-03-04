@@ -1,8 +1,9 @@
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter, stderr, stdin, stdout, Write};
-use std::process::exit;
 use std::path::Path;
+use std::process::exit;
+use std::str::FromStr;
 
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use clap::ArgMatches;
@@ -17,12 +18,14 @@ mod expander;
 mod global_alias;
 mod loader;
 mod meta;
+mod tag;
 
 use crate::database::Database;
-use crate::errors::{AppError, AppResultU, from_path};
+use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
 use crate::loader::Config;
+use crate::tag::Tag;
 
 
 
@@ -214,7 +217,8 @@ fn command_select(db: &Database, aliases: GlobalAliasTable, expression: &str, va
 }
 
 fn command_tag_add(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
-    db.add_tags(path, tags)
+    let tags = to_tags(tags)?;
+    db.add_tags(path, tags.as_slice())
 }
 
 fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
@@ -222,11 +226,13 @@ fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
 }
 
 fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
-    db.delete_tags(path, tags)
+    let tags = to_tags(tags)?;
+    db.delete_tags(path, tags.as_slice())
 }
 
 fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
-    db.set_tags(path, tags)
+    let tags = to_tags(tags)?;
+    db.set_tags(path, tags.as_slice())
 }
 
 fn command_reset(db: &Database) -> AppResultU {
@@ -270,4 +276,8 @@ fn join(strings: &[&str]) -> String {
         joined.push_str(it);
     }
     joined
+}
+
+fn to_tags(tags: &[&str]) -> AppResult<Vec<Tag>> {
+    tags.iter().map(|it| Tag::from_str(it)).collect()
 }

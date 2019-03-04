@@ -21,6 +21,8 @@ pub enum AppError {
     DirectoryWalking(walkdir::Error),
     #[fail(display = "{}: {}", 0, 1)]
     ImageLoading(immeta::Error, String),
+    #[fail(display = "Invalid tag format: {}", 0)]
+    InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
     Io(std::io::Error),
     #[fail(display = "JSON Error: {}", 0)]

@@ -2,13 +2,15 @@
 use std::io::BufRead;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::str::FromStr;
 
 use walkdir::WalkDir;
 use if_let_return::if_let_some;
 
+use crate::database::Database;
 use crate::errors::{AppResult, AppResultU, from_os_str, from_path};
 use crate::meta::Meta;
-use crate::database::Database;
+use crate::tag::Tag;
 
 
 
@@ -60,8 +62,8 @@ impl<'a> Loader<'a> {
                 self.db.flush()?;
             }
             let tags = self.generate_tags(&file)?;
-            let tags: Vec<&str> = tags.iter().map(|it| it.as_ref()).collect();
-            self.db.set_tags(from_path(&file)?, &tags)?;
+            let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(&it)).collect();
+            self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
             self.db.upsert(&meta)?;
             println!("{}", meta);
         }
