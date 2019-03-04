@@ -64,7 +64,7 @@ fn app() -> AppResultU {
         command_alias(&db, aliases, name, expressions, recursive, local)?;
     } else if let Some(ref matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
-        args::build_cli().gen_completions_to("image-db", shell.parse().unwrap(), &mut stdout());
+        args::build_cli().gen_completions_to("noir", shell.parse().unwrap(), &mut stdout());
     } else if let Some(ref matches) = matches.subcommand_matches("expand") {
         let expression = matches.value_of("expression").unwrap();
         let full = matches.is_present("full");
