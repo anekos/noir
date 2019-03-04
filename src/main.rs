@@ -33,6 +33,8 @@ const APP_INFO: AppInfo = AppInfo { name: "noir", author: "anekos" };
 
 
 fn main() {
+    env_logger::init();
+
     match app() {
         Err(AppError::Void) | Ok(()) => (),
         Err(err) => {

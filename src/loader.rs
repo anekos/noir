@@ -33,6 +33,8 @@ impl<'a> Loader<'a> {
     }
 
     pub fn load<T: AsRef<Path>>(&mut self, path: &T) -> AppResultU {
+        log::trace!("load: {:?}", path.as_ref());
+
         if path.as_ref().is_dir() {
             self.load_directory(path)?;
         } else if path.as_ref().is_file() {
@@ -49,6 +51,7 @@ impl<'a> Loader<'a> {
     }
 
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
+        log::trace!("load_file: {:?}", file.as_ref());
         let file = file.as_ref().canonicalize()?;
         if !self.config.update && self.db.path_exists(from_path(&file)?)? {
             return Ok(());
@@ -72,6 +75,7 @@ impl<'a> Loader<'a> {
 
     fn load_directory<T: AsRef<Path>>(&mut self, directory: &T) -> AppResultU {
         println!("Loading: {:?}", directory.as_ref());
+        log::trace!("load_directory: {:?}", directory.as_ref());
         let walker = WalkDir::new(directory).follow_links(true);
         for entry in walker.into_iter().filter_map(|it| it.ok()).filter(|it| it.file_type().is_file()) {
             self.load_file(&entry.path())?;
