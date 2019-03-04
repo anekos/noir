@@ -52,11 +52,11 @@ impl<'a> Loader<'a> {
 
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         log::trace!("load_file: {:?}", file.as_ref());
-        let file = file.as_ref().canonicalize()?;
-        if !self.config.update && self.db.path_exists(from_path(&file)?)? {
+        if self.config.check_extension && !has_image_extension(&file)? {
             return Ok(());
         }
-        if self.config.check_extension && !has_image_extension(&file)? {
+        let file = file.as_ref().canonicalize()?;
+        if !self.config.update && self.db.path_exists(from_path(&file)?)? {
             return Ok(());
         }
         if let Ok(meta) = Meta::from_file(&file) {
