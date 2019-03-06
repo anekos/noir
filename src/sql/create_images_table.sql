@@ -4,9 +4,10 @@ CREATE TABLE IF NOT EXISTS images (
   height INTEGER,
   ratio_width INTEGER,
   ratio_height INTEGER,
-  mime_type TEXT,
+  format TEXT,
   animation BOOLEAN,
   file_size INTEGER,
+  dhash INTEGER,
   created TEXT,
   modified TEXT,
   accessed TEXT

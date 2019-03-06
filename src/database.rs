@@ -77,7 +77,7 @@ impl Database {
         let path = Path::new(path).canonicalize().unwrap_or_else(|_| Path::new(path).to_path_buf());
         let path = from_path(&path)?;
         let mut stmt = self.connection.prepare("SELECT * FROM images WHERE path = ?1")?;
-        let mut iter = stmt.query_map(&[&path as &ToSql], from_row)?;
+        let mut iter = stmt.query_and_then(&[&path as &ToSql], from_row)?;
         if let Some(found) = iter.next() {
             Ok(Some(found?))
         } else {
@@ -93,9 +93,10 @@ impl Database {
             &meta.dimensions.height,
             &width,
             &height,
-            &meta.r#type,
+            &meta.format,
             &meta.animation,
             &(meta.file.size as u32),
+            &(meta.dhash as i64) as &ToSql,
             &meta.file.created.as_ref(),
             &meta.file.modified.as_ref(),
             &meta.file.accessed.as_ref(),
@@ -128,15 +129,16 @@ impl Database {
     }
 
     pub fn reset(&self) -> AppResultU {
-        self.connection.execute("DELETE FROM images", NO_PARAMS)?;
-        self.connection.execute("DELETE FROM tags", NO_PARAMS)?;
+        self.connection.execute("DROP TABLE images", NO_PARAMS)?;
+        self.connection.execute("DROP TABLE tags", NO_PARAMS)?;
         self.flush()?;
+        create_table(&self.connection)?;
         Ok(())
     }
 
     pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str, bool) -> AppResultU {
         let mut stmt = self.connection.prepare(&format!("{}{}", SELECT_PREFIX, where_expression))?;
-        let iter = stmt.query_map(NO_PARAMS, from_row)?;
+        let iter = stmt.query_and_then(NO_PARAMS, from_row)?;
 
         for it in iter {
             let it = it?;
@@ -187,25 +189,28 @@ fn create_table(conn: &Connection) -> AppResultU {
     Ok(())
 }
 
-fn from_row(row: &Row) -> Meta {
+fn from_row(row: &Row) -> AppResult<Meta> {
+    use crate::format::{from_raw, FormatExt};
     use crate::meta::*;
 
-    Meta {
-        animation: row.get(6),
+    let result = Meta {
+        animation: row.get_checked(6)?,
+        dhash: {
+            let dhash: i64 = row.get_checked(8)?;
+            dhash as u64
+        },
         dimensions: Dimensions {
-            width: row.get(1),
-            height: row.get(2),
+            width: row.get_checked(1)?,
+            height: row.get_checked(2)?,
         },
-        r#type: {
-            let t: String = row.get(5);
-            ["png", "gif", "jpeg", "webp"].iter().find(|it| **it == &*t).expect("Unknown mime type")
-        },
+        format: from_raw(row.get_raw(5))?.to_str(),
         file: FileMeta {
-            path: row.get(0),
-            size: row.get(7),
-            created: row.get(8),
-            modified: row.get(9),
-            accessed: row.get(10),
+            path: row.get_checked(0)?,
+            size: row.get_checked(7)?,
+            created: row.get_checked(9)?,
+            modified: row.get_checked(10)?,
+            accessed: row.get_checked(11)?,
         },
-    }
+    };
+    Ok(result)
 }
