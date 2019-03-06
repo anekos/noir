@@ -8,7 +8,6 @@ use std::str::FromStr;
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use clap::ArgMatches;
 use if_let_return::if_let_some;
-use serde_json;
 
 mod alias;
 mod args;
@@ -79,7 +78,8 @@ fn app() -> AppResultU {
         command_expand(&db, aliases, expression, full)?;
     } else if let Some(ref matches) = matches.subcommand_matches("get") {
         let path = matches.value_of("path").unwrap();
-        command_get(&db, path)?;
+        let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
+        command_get(&db, path, format)?;
     } else if let Some(ref matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         command_load(&db, &paths, extract_loader_config(matches))?;
@@ -163,9 +163,11 @@ fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, fu
     Ok(())
 }
 
-fn command_get(db: &Database, path: &str) -> AppResultU {
+fn command_get(db: &Database, path: &str, format: OutputFormat) -> AppResultU {
     if let Some(meta) = db.get(path)? {
-        println!("{}", serde_json::to_string_pretty(&meta)?);
+        let output = stdout();
+        let mut output = output.lock();
+        format.write(&mut output, &meta)?;
     } else {
         eprintln!("Entry Not found");
         exit(1);

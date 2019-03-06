@@ -12,6 +12,11 @@ pub fn build_cli() -> App<'static, 'static> {
         .help("Compute dhash")
         .short("d")
         .long("dhash");
+    let format = Arg::with_name("format")
+        .help("Output format")
+        .short("f")
+        .long("format")
+        .takes_value(true);
 
     app_from_crate!()
         .arg(Arg::with_name("database-name")
@@ -57,6 +62,7 @@ pub fn build_cli() -> App<'static, 'static> {
                          .required(true)))
         .subcommand(SubCommand::with_name("get")
                     .about("Get image information")
+                    .arg(format.clone())
                     .arg(Arg::with_name("path")
                          .required(true)))
         .subcommand(SubCommand::with_name("load")
@@ -103,11 +109,7 @@ pub fn build_cli() -> App<'static, 'static> {
                     .alias("s")
                     .alias("select")
                     .about("Search images")
-                    .arg(Arg::with_name("format")
-                         .help("Output format")
-                         .short("f")
-                         .long("format")
-                         .takes_value(true))
+                    .arg(format)
                     .arg(Arg::with_name("vacuum")
                          .help("Remove entries that do not exist")
                          .short("v")
