@@ -5,12 +5,12 @@ use rusqlite::types::{FromSql, FromSqlResult, ValueRef};
 
 
 
-pub trait FormatExt {
+pub trait ImageFormatExt {
     fn to_str(&self) -> &'static str;
 }
 
 
-impl FormatExt for ImageFormat {
+impl ImageFormatExt for ImageFormat {
     fn to_str(&self) -> &'static str {
         use ImageFormat::*;
 
@@ -29,7 +29,7 @@ impl FormatExt for ImageFormat {
     }
 }
 
-impl FormatExt for GenericMetadata {
+impl ImageFormatExt for GenericMetadata {
     fn to_str(&self) -> &'static str {
         use GenericMetadata::*;
         match self {

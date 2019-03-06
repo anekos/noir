@@ -87,7 +87,7 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta, hashing: bool) -> Ap
 }
 
 fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
-    use crate::format::FormatExt;
+    use crate::image_format::ImageFormatExt;
 
     let meta = immeta::load_from_file(file)?;
     let dimensions = meta.dimensions();
@@ -109,7 +109,7 @@ fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> A
 }
 
 fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
-    use crate::format::FormatExt;
+    use crate::image_format::ImageFormatExt;
 
     let meta = immeta::load_from_file(file)?;
     let animation = is_animation(&meta);
