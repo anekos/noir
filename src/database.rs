@@ -190,7 +190,7 @@ fn create_table(conn: &Connection) -> AppResultU {
 }
 
 fn from_row(row: &Row) -> AppResult<Meta> {
-    use crate::format::{from_raw, FormatExt};
+    use crate::image_format::{from_raw, ImageFormatExt};
     use crate::meta::*;
 
     let result = Meta {
