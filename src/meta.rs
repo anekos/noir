@@ -1,21 +1,24 @@
 
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
 use chrono::DateTime;
 use chrono::offset::Utc;
-use immeta;
+use image::GenericImageView;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::errors::{AppError, AppResult, from_os_str};
+use crate::errors::{AppResult, from_os_str};
 
 
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Meta {
     pub animation: bool,
+    pub dhash: u64,
     pub dimensions: Dimensions,
-    pub r#type: &'static str,
     pub file: FileMeta,
+    pub format: &'static str,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -45,9 +48,7 @@ impl Meta {
             modified: file_meta.modified().ok().map(DateTime::from),
             accessed: file_meta.accessed().ok().map(DateTime::from),
         };
-        from_file(file, file_meta).map_err(|err| {
-            AppError::ImageLoading(err, format!("{:?}", file.as_ref()))
-        })
+        from_file(file, file_meta)
     }
 }
 
@@ -55,12 +56,13 @@ impl std::fmt::Display for Meta {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "{}: dim={}x{} type={} anim={}",
+            "{}: dim={}x{} format={} anim={} dhash={:x}",
             self.file.path,
             self.dimensions.width,
             self.dimensions.height,
-            self.r#type,
-            self.animation)
+            self.format,
+            self.animation,
+            self.dhash as u64)
     }
 }
 
@@ -76,32 +78,27 @@ impl Dimensions {
     }
 }
 
-fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> Result<Meta, immeta::Error> {
-    use immeta::GenericMetadata::*;
+fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
+    use crate::format::FormatExt;
 
-    const IMAGE_PREFIX: &str = "image/";
+    let mut file = File::open(file)?;
+    let mut content = vec![];
+    file.read_to_end(&mut content)?;
+    let format = image::guess_format(&content)?;
+    let image = image::load_from_memory_with_format(&content, format)?;
+    let dhash = dhash::get_dhash(&image);
 
-    let meta = immeta::load_from_file(file)?;
-    let dimensions = meta.dimensions();
-
-    let animation = match meta {
-        Gif(ref meta) => meta.is_animated(),
-        _ => false,
-    };
-
-    let mut r#type = meta.mime_type();
-    if r#type.starts_with(IMAGE_PREFIX) {
-        r#type = &r#type[IMAGE_PREFIX.len() ..];
-    }
+    let animation = true;
 
     let meta = Meta {
         animation,
+        dhash,
         dimensions: Dimensions {
-            height: dimensions.height,
-            width: dimensions.width,
+            height: image.height(),
+            width: image.width(),
         },
         file: file_meta,
-        r#type,
+        format: format.to_str(),
     };
 
     Ok(meta)

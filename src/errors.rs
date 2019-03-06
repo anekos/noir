@@ -19,8 +19,10 @@ pub enum AppError {
     Clap(clap::Error),
     #[fail(display = "Failed to load directory: {}", 0)]
     DirectoryWalking(walkdir::Error),
-    #[fail(display = "{}: {}", 0, 1)]
-    ImageLoading(immeta::Error, String),
+    #[fail(display = "{}", 0)]
+    FromSql(rusqlite::types::FromSqlError),
+    #[fail(display = "{}", 0)]
+    ImageLoading(image::ImageError),
     #[fail(display = "Invalid tag format: {}", 0)]
     InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
@@ -52,11 +54,13 @@ macro_rules! define_error {
 
 define_error!(app_dirs::AppDirsError, AppDir);
 define_error!(clap::Error, Clap);
+define_error!(image::ImageError, ImageLoading);
 define_error!(rusqlite::Error, Sqlite);
+define_error!(rusqlite::types::FromSqlError, FromSql);
 define_error!(serde_json::Error, SerdeJson);
 define_error!(serde_yaml::Error, SerdeYaml);
-define_error!(walkdir::Error, DirectoryWalking);
 define_error!(std::string::FromUtf8Error, Utf8);
+define_error!(walkdir::Error, DirectoryWalking);
 
 pub fn from_os_str(s: &OsStr) -> AppResult<&str> {
     s.to_str().ok_or(AppError::UnknownUtf8)

@@ -15,6 +15,7 @@ mod args;
 mod database;
 mod errors;
 mod expander;
+mod format;
 mod global_alias;
 mod loader;
 mod meta;
