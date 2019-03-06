@@ -16,6 +16,7 @@ use crate::tag::Tag;
 
 pub struct Config<'a> {
     pub check_extension: bool,
+    pub compute_dhash: bool,
     pub tag_generator: Option<&'a str>,
     pub update: bool,
 }

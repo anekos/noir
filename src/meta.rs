@@ -48,7 +48,7 @@ impl Meta {
             modified: file_meta.modified().ok().map(DateTime::from),
             accessed: file_meta.accessed().ok().map(DateTime::from),
         };
-        from_file(file, file_meta)
+        from_file(file, file_meta, false)
     }
 }
 
@@ -78,7 +78,43 @@ impl Dimensions {
     }
 }
 
-fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
+fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta, hashing: bool) -> AppResult<Meta> {
+    if hashing {
+        from_file_with_hashing(file, file_meta)
+    } else {
+        from_file_without_hashing(file, file_meta)
+    }
+}
+
+fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
+    use immeta::GenericMetadata::*;;
+    use crate::format::FormatExt;
+
+    let meta = immeta::load_from_file(file)?;
+    let dimensions = meta.dimensions();
+
+    let animation = match meta {
+        Gif(ref meta) => meta.is_animated(),
+        _ => false,
+    };
+
+    let format = meta.to_str();
+
+    let meta = Meta {
+        animation,
+        dhash: 0,
+        dimensions: Dimensions {
+            height: dimensions.height,
+            width: dimensions.width,
+        },
+        file: file_meta,
+        format,
+    };
+
+    Ok(meta)
+}
+
+fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
     use crate::format::FormatExt;
 
     let mut file = File::open(file)?;
@@ -88,6 +124,7 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
     let image = image::load_from_memory_with_format(&content, format)?;
     let dhash = dhash::get_dhash(&image);
 
+    // TODO
     let animation = true;
 
     let meta = Meta {

@@ -8,6 +8,10 @@ pub fn build_cli() -> App<'static, 'static> {
         .help("Check file extension before load")
         .short("c")
         .long("check-extension");
+    let dhash = Arg::with_name("dhash")
+        .help("Compute dhash")
+        .short("d")
+        .long("--dhash");
 
     app_from_crate!()
         .arg(Arg::with_name("database-name")
@@ -71,7 +75,8 @@ pub fn build_cli() -> App<'static, 'static> {
                     .arg(Arg::with_name("path")
                          .required(true)
                          .min_values(1))
-                    .arg(check.clone()))
+                    .arg(check.clone())
+                    .arg(dhash.clone()))
         .subcommand(SubCommand::with_name("load-list")
                     .alias("l")
                     .about("Load from list file")
@@ -88,7 +93,8 @@ pub fn build_cli() -> App<'static, 'static> {
                     .arg(Arg::with_name("list-file")
                          .required(true)
                          .min_values(0))
-                    .arg(check))
+                    .arg(check)
+                    .arg(dhash))
         .subcommand(SubCommand::with_name("path")
                     .about("Show database path"))
         .subcommand(SubCommand::with_name("reset")

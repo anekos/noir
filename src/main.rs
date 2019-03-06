@@ -265,9 +265,10 @@ fn command_unalias(db: &Database, aliases: &mut GlobalAliasTable, name: &str, lo
 
 fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
     let check_extension = matches.is_present("check-extension");
+    let compute_dhash = matches.is_present("dhash");
     let tag_generator = matches.value_of("tag-script");
     let update = matches.is_present("update");
-    Config { check_extension, tag_generator, update }
+    Config { check_extension, compute_dhash , tag_generator, update}
 }
 
 fn join(strings: &[&str]) -> String {
