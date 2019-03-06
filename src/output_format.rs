@@ -12,6 +12,8 @@ use crate::meta::Meta;
 
 pub enum OutputFormat {
     Chrysoberyl,
+    Json,
+    PrettyJson,
     Simple,
 }
 
@@ -20,8 +22,6 @@ impl OutputFormat {
         use OutputFormat::*;
 
         match self {
-            Simple =>
-                writeln!(w, "{}", meta.file.path)?,
             Chrysoberyl => {
                 write!(w, "@push-image")?;
                 write!(w, " --meta width={}", meta.dimensions.width)?;
@@ -30,6 +30,12 @@ impl OutputFormat {
                 write!(w, " --meta dhash={}", meta.dhash)?;
                 writeln!(w, " {}", escape(Cow::from(&meta.file.path)))?;
             },
+            Json =>
+                writeln!(w, "{}", serde_json::to_string(meta)?)?,
+            PrettyJson =>
+                writeln!(w, "{}", serde_json::to_string_pretty(meta)?)?,
+            Simple =>
+                writeln!(w, "{}", meta.file.path)?,
         }
         Ok(())
     }
@@ -43,6 +49,8 @@ impl FromStr for OutputFormat {
 
         let result = match s {
             "c" | "chrysoberyl" => Chrysoberyl,
+            "j" | "json" => Json,
+            "p" | "pretty-json" => PrettyJson,
             "s" | "simple" => Simple,
             _ => return Err(AppError::InvalidOutputFormat(s.to_owned())),
         };
