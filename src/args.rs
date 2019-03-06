@@ -11,7 +11,7 @@ pub fn build_cli() -> App<'static, 'static> {
     let dhash = Arg::with_name("dhash")
         .help("Compute dhash")
         .short("d")
-        .long("--dhash");
+        .long("dhash");
 
     app_from_crate!()
         .arg(Arg::with_name("database-name")

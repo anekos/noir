@@ -39,7 +39,7 @@ pub struct FileMeta {
 
 
 impl Meta {
-    pub fn from_file<T: AsRef<Path>>(file: &T) -> AppResult<Meta> {
+    pub fn from_file<T: AsRef<Path>>(file: &T, compute_dhash: bool) -> AppResult<Meta> {
         let file_meta = std::fs::metadata(file)?;
         let file_meta = FileMeta {
             path: from_os_str(file.as_ref().as_os_str())?.to_string(),
@@ -48,7 +48,7 @@ impl Meta {
             modified: file_meta.modified().ok().map(DateTime::from),
             accessed: file_meta.accessed().ok().map(DateTime::from),
         };
-        from_file(file, file_meta, false)
+        from_file(file, file_meta, compute_dhash)
     }
 }
 

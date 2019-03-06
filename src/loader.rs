@@ -60,7 +60,7 @@ impl<'a> Loader<'a> {
         if !self.config.update && self.db.path_exists(from_path(&file)?)? {
             return Ok(());
         }
-        if let Ok(meta) = Meta::from_file(&file) {
+        if let Ok(meta) = Meta::from_file(&file, self.config.compute_dhash) {
             self.count += 1;
             if self.count % 100 == 0 {
                 self.db.flush()?;
