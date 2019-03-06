@@ -87,17 +87,11 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta, hashing: bool) -> Ap
 }
 
 fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
-    use immeta::GenericMetadata::*;;
     use crate::format::FormatExt;
 
     let meta = immeta::load_from_file(file)?;
     let dimensions = meta.dimensions();
-
-    let animation = match meta {
-        Gif(ref meta) => meta.is_animated(),
-        _ => false,
-    };
-
+    let animation = is_animation(&meta);
     let format = meta.to_str();
 
     let meta = Meta {
@@ -117,15 +111,15 @@ fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> A
 fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
     use crate::format::FormatExt;
 
+    let meta = immeta::load_from_file(file)?;
+    let animation = is_animation(&meta);
+
     let mut file = File::open(file)?;
     let mut content = vec![];
     file.read_to_end(&mut content)?;
     let format = image::guess_format(&content)?;
     let image = image::load_from_memory_with_format(&content, format)?;
     let dhash = dhash::get_dhash(&image);
-
-    // TODO
-    let animation = true;
 
     let meta = Meta {
         animation,
@@ -146,5 +140,13 @@ fn gcd(x: u32, y: u32) -> u32 {
         x
     } else {
         gcd(y, x % y)
+    }
+}
+
+fn is_animation(meta: &immeta::GenericMetadata) -> bool {
+    use immeta::GenericMetadata::*;;
+    match meta {
+        Gif(ref meta) => meta.is_animated(),
+        _ => false,
     }
 }
