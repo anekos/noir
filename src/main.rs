@@ -19,6 +19,7 @@ mod global_alias;
 mod image_format;
 mod loader;
 mod meta;
+mod output_format;
 mod tag;
 
 use crate::database::Database;
@@ -26,6 +27,7 @@ use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
 use crate::loader::Config;
+use crate::output_format::OutputFormat;
 use crate::tag::Tag;
 
 
@@ -88,10 +90,11 @@ fn app() -> AppResultU {
         println!("{}", from_path(&db_file)?);
     } else if matches.is_present("reset") {
         command_reset(&db)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("select") {
+    } else if let Some(ref matches) = matches.subcommand_matches("search") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         let vacuum = matches.is_present("vacuum");
-        command_select(&db, aliases, &join(&wheres), vacuum)?;
+        let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
+        command_search(&db, aliases, &join(&wheres), vacuum, format)?;
     } else if let Some(ref matches) = matches.subcommand_matches("tag") {
         if let Some(ref matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -197,7 +200,7 @@ fn command_load_list(db: &Database, mut paths: &[&str], config: Config) -> AppRe
     Ok(())
 }
 
-fn command_select(db: &Database, aliases: GlobalAliasTable, expression: &str, vacuum: bool) -> AppResultU {
+fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, vacuum: bool, format: OutputFormat) -> AppResultU {
     let error = stderr();
     let error = error.lock();
     let output = stdout();
@@ -209,11 +212,11 @@ fn command_select(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     let expander = Expander::generate(db, aliases)?;
     let expression = expander.expand(expression);
 
-    db.select(&expression, vacuum, |path, vacuumed| {
+    db.select(&expression, vacuum, |meta, vacuumed| {
         if vacuumed {
-            writeln!(error, "Vacuumed: {}", path)?;
+            writeln!(error, "Vacuumed: {}", meta.file.path)?;
         } else {
-            writeln!(output, "{}", path)?;
+            format.write(&mut output, meta)?;
         }
         Ok(())
     })

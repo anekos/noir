@@ -20,11 +20,15 @@ pub enum AppError {
     #[fail(display = "Failed to load directory: {}", 0)]
     DirectoryWalking(walkdir::Error),
     #[fail(display = "{}", 0)]
+    Format(std::fmt::Error),
+    #[fail(display = "{}", 0)]
     FromSql(rusqlite::types::FromSqlError),
     #[fail(display = "{}", 0)]
     ImageLoading(image::ImageError),
     #[fail(display = "{}", 0)]
     ImageMetaLoading(immeta::Error),
+    #[fail(display = "Invalid output format name: {}", 0)]
+    InvalidOutputFormat(String),
     #[fail(display = "Invalid tag format: {}", 0)]
     InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
@@ -62,6 +66,7 @@ define_error!(rusqlite::Error, Sqlite);
 define_error!(rusqlite::types::FromSqlError, FromSql);
 define_error!(serde_json::Error, SerdeJson);
 define_error!(serde_yaml::Error, SerdeYaml);
+define_error!(std::fmt::Error, Format);
 define_error!(std::string::FromUtf8Error, Utf8);
 define_error!(walkdir::Error, DirectoryWalking);
 

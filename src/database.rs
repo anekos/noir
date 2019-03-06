@@ -136,7 +136,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&str, bool) -> AppResultU {
+    pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&Meta, bool) -> AppResultU {
         let mut stmt = self.connection.prepare(&format!("{}{}", SELECT_PREFIX, where_expression))?;
         let iter = stmt.query_and_then(NO_PARAMS, from_row)?;
 
@@ -146,7 +146,7 @@ impl Database {
             if vacuumed {
                 self.delete_path(&it.file.path)?;
             }
-            f(&it.file.path, vacuumed)?;
+            f(&it, vacuumed)?;
         }
 
         Ok(())
