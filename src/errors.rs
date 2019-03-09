@@ -23,6 +23,8 @@ pub enum AppError {
     Format(std::fmt::Error),
     #[fail(display = "{}", 0)]
     FromSql(rusqlite::types::FromSqlError),
+    #[fail(display = "Invalid number format")]
+    InvalidNumberFormat(std::num::ParseIntError),
     #[fail(display = "{}", 0)]
     ImageLoading(image::ImageError),
     #[fail(display = "{}", 0)]
@@ -67,6 +69,7 @@ define_error!(rusqlite::types::FromSqlError, FromSql);
 define_error!(serde_json::Error, SerdeJson);
 define_error!(serde_yaml::Error, SerdeYaml);
 define_error!(std::fmt::Error, Format);
+define_error!(std::num::ParseIntError, InvalidNumberFormat);
 define_error!(std::string::FromUtf8Error, Utf8);
 define_error!(walkdir::Error, DirectoryWalking);
 

@@ -9,7 +9,6 @@ use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use clap::ArgMatches;
 use if_let_return::if_let_some;
 
-
 use crate::args;
 use crate::database::Database;
 use crate::errors::{AppResult, AppResultU, from_path};
@@ -25,8 +24,7 @@ use crate::tag::Tag;
 const APP_INFO: AppInfo = AppInfo { name: "noir", author: "anekos" };
 
 
-pub fn run() -> AppResultU {
-    let matches = crate::args::build_cli().get_matches();
+pub fn run(matches: &ArgMatches) -> AppResultU {
     let db_file = {
         if let Some(path) = matches.value_of("database-path") {
             Path::new(path).to_owned()
