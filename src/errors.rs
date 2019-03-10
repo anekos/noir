@@ -1,6 +1,6 @@
 
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use failure::Fail;
 
@@ -35,6 +35,8 @@ pub enum AppError {
     InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
     Io(std::io::Error),
+    #[fail(display = "{} for {:?}", 0, 1)]
+    IoWithPath(std::io::Error, PathBuf),
     #[fail(display = "JSON Error: {}", 0)]
     SerdeJson(serde_json::Error),
     #[fail(display = "YAML Error: {}", 0)]
@@ -81,6 +83,12 @@ pub fn from_path<T: AsRef<Path>>(path: &T) -> AppResult<&str> {
     from_os_str(path.as_ref().as_os_str())
 }
 
+pub fn wrap_io_error<T: AsRef<Path>, U>(path: &T, result: AppResult<U>) -> AppResult<U> {
+    result.map_err(|it| match it {
+        AppError::Io(error) => AppError::IoWithPath(error, path.as_ref().to_path_buf()),
+        otherwise => otherwise,
+    })
+}
 
 impl From<std::io::Error> for AppError {
     fn from(error: std::io::Error) -> AppError {
