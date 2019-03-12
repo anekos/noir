@@ -59,7 +59,7 @@ impl<'a> Loader<'a> {
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         if let Err(err) = self.load_file_inner(file) {
             if self.config.skip_errors {
-                eprintln!("SKIP: {}", err);
+                eprintln!("SKIP: {} for {:?}", err, file.as_ref());
             } else {
                 return Err(err);
             }
