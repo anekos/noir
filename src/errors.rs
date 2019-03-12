@@ -43,6 +43,8 @@ pub enum AppError {
     SerdeYaml(serde_yaml::Error),
     #[fail(display = "Database error: {}", 0)]
     Sqlite(rusqlite::Error),
+    #[fail(display = "Tag generator failed: {}", 0)]
+    TagGeneratorFailed(String),
     #[fail(display = "UTF-8 error")]
     UnknownUtf8,
     #[fail(display = "UTF-8 error: {}", 0)]

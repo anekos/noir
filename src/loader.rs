@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use if_let_return::if_let_some;
 
 use crate::database::Database;
-use crate::errors::{AppResult, AppResultU, from_os_str, from_path, wrap_io_error};
+use crate::errors::{AppError, AppResult, AppResultU, from_os_str, from_path, wrap_io_error};
 use crate::meta::Meta;
 use crate::tag::Tag;
 
@@ -97,6 +97,12 @@ impl<'a> Loader<'a> {
         let mut command = Command::new(tag_generator);
         command.args(&[file.as_ref().as_os_str()]);
         command.stdout(Stdio::piped());
+        let status = command.status()?;
+        if !status.success() {
+            let err = command.output()?.stderr;
+            let err = String::from_utf8(err)?;
+            return Err(AppError::TagGeneratorFailed(err));
+        }
         let result = String::from_utf8(command.output()?.stdout)?;
         Ok(result.lines().filter(|it| !it.is_empty()).map(|it| it.to_owned()).collect())
     }
