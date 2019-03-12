@@ -158,6 +158,12 @@ impl Database {
         Ok(result?)
     }
 
+    pub fn tags_by_path(&self, path: &str) -> AppResult<Vec<String>> {
+        let mut stmt = self.connection.prepare("SELECT tag FROM tags WHERE path = ?1")?;
+        let result: rusqlite::Result<Vec<String>> = stmt.query_map(&[path], |row: &Row| row.get(0))?.collect();
+        Ok(result?)
+    }
+
     pub fn delete_alias(&self, name: &str) -> AppResultU {
         self.connection.execute("DELETE FROM aliases WHERE name = ?1", &[name])?;
         Ok(())

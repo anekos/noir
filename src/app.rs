@@ -87,6 +87,9 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
             command_tag_set(&db, path, &tags)?;
+        } else if let Some(ref matches) = matches.subcommand_matches("show") {
+            let path: &str = matches.value_of("path").unwrap();
+            command_tag_show(&db, path)?;
         } else {
             eprintln!("{}", matches.usage());
             exit(1);
@@ -217,6 +220,14 @@ fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
 fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
     let tags = to_tags(tags)?;
     db.set_tags(path, tags.as_slice())
+}
+
+fn command_tag_show(db: &Database, path: &str) -> AppResultU {
+    let path = Path::new(path).canonicalize()?;
+    for tag in db.tags_by_path(&from_path(&path)?)? {
+        println!("{}", tag);
+    }
+    Ok(())
 }
 
 fn command_reset(db: &Database) -> AppResultU {
