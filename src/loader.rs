@@ -17,6 +17,7 @@ use crate::tag::Tag;
 pub struct Config<'a> {
     pub check_extension: bool,
     pub compute_dhash: bool,
+    pub dry_run: bool,
     pub tag_generator: Option<&'a str>,
     pub update: bool,
 }
@@ -62,6 +63,10 @@ impl<'a> Loader<'a> {
         let file = file.as_ref().canonicalize()?;
         if !self.config.update && self.db.path_exists(from_path(&file)?)? {
             return Ok(());
+        }
+        if self.config.dry_run {
+            println!("DRYRUN: {:?}", file);
+            return Ok(())
         }
         if let Ok(meta) = Meta::from_file(&file, self.config.compute_dhash) {
             self.count += 1;
