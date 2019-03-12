@@ -164,7 +164,7 @@ pub fn build_cli() -> App<'static, 'static> {
                                 .alias("S")
                                 .about("Show tags")
                                 .arg(Arg::with_name("path")
-                                     .required(true))))
+                                     .required(false))))
         .subcommand(SubCommand::with_name("unalias")
                     .alias("s")
                     .about("Unalias")
