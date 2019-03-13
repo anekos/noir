@@ -1,6 +1,6 @@
 
 use image::ImageFormat;
-use immeta::GenericMetadata;
+use image_meta::ImageMeta;
 use rusqlite::types::{FromSql, FromSqlResult, ValueRef};
 
 
@@ -29,14 +29,14 @@ impl ImageFormatExt for ImageFormat {
     }
 }
 
-impl ImageFormatExt for GenericMetadata {
+impl ImageFormatExt for ImageMeta {
     fn to_str(&self) -> &'static str {
-        use GenericMetadata::*;
-        match self {
-            Png(_) => "png",
-            Gif(_) => "gif",
-            Jpeg(_) => "jpeg",
-            Webp(_) => "webp"
+        use image_meta::Format::*;
+
+        match self.format {
+            Gif => "gif",
+            Jpeg => "jpeg",
+            Png => "png",
         }
     }
 }

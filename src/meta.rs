@@ -1,4 +1,5 @@
 
+use std::convert::From;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -37,7 +38,6 @@ pub struct FileMeta {
 }
 
 
-
 impl Meta {
     pub fn from_file<T: AsRef<Path>>(file: &T, compute_dhash: bool) -> AppResult<Meta> {
         let file_meta = std::fs::metadata(file)?;
@@ -67,6 +67,12 @@ impl std::fmt::Display for Meta {
 }
 
 
+impl From<&image_meta::Dimensions> for Dimensions {
+    fn from(meta: &image_meta::Dimensions) -> Self {
+        Self { width: meta.width, height: meta.height }
+    }
+}
+
 impl Dimensions {
     pub fn ratio(&self) -> (u32, u32) {
         let divisor = gcd(self.width, self.height);
@@ -89,10 +95,10 @@ fn from_file<T: AsRef<Path>>(file: &T, file_meta: FileMeta, hashing: bool) -> Ap
 fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
     use crate::image_format::ImageFormatExt;
 
-    let meta = immeta::load_from_file(file)?;
-    let dimensions = meta.dimensions();
-    let animation = is_animation(&meta);
+    let meta = image_meta::load_from_file(file)?;
+    let animation = meta.is_animation();
     let format = meta.to_str();
+    let dimensions = &meta.dimensions;
 
     let meta = Meta {
         animation,
@@ -111,8 +117,7 @@ fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> A
 fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppResult<Meta> {
     use crate::image_format::ImageFormatExt;
 
-    let meta = immeta::load_from_file(file)?;
-    let animation = is_animation(&meta);
+    let meta = image_meta::load_from_file(file)?;
 
     let mut file = File::open(file)?;
     let mut content = vec![];
@@ -122,7 +127,7 @@ fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppR
     let dhash = dhash::get_dhash(&image);
 
     let meta = Meta {
-        animation,
+        animation: meta.is_animation(),
         dhash,
         dimensions: Dimensions {
             height: image.height(),
@@ -140,13 +145,5 @@ fn gcd(x: u32, y: u32) -> u32 {
         x
     } else {
         gcd(y, x % y)
-    }
-}
-
-fn is_animation(meta: &immeta::GenericMetadata) -> bool {
-    use immeta::GenericMetadata::*;;
-    match meta {
-        Gif(ref meta) => meta.is_animated(),
-        _ => false,
     }
 }

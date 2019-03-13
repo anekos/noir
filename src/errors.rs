@@ -28,7 +28,7 @@ pub enum AppError {
     #[fail(display = "{}", 0)]
     ImageLoading(image::ImageError),
     #[fail(display = "{}", 0)]
-    ImageMetaLoading(immeta::Error),
+    ImageMetaLoading(image_meta::ImageError),
     #[fail(display = "Invalid output format name: {}", 0)]
     InvalidOutputFormat(String),
     #[fail(display = "Invalid tag format: {}", 0)]
@@ -67,7 +67,7 @@ macro_rules! define_error {
 define_error!(app_dirs::AppDirsError, AppDir);
 define_error!(clap::Error, Clap);
 define_error!(image::ImageError, ImageLoading);
-define_error!(immeta::Error, ImageMetaLoading);
+define_error!(image_meta::ImageError, ImageMetaLoading);
 define_error!(rusqlite::Error, Sqlite);
 define_error!(rusqlite::types::FromSqlError, FromSql);
 define_error!(serde_json::Error, SerdeJson);

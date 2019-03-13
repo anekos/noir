@@ -12,7 +12,6 @@ env_logger = "0.6"
 failure = "0.1"
 if-let-return = "0.1"
 image = "0.21"
-immeta = "0.4"
 lazy_static = "1.3"
 libsqlite3-sys = "0.11"
 log = "0.4"
@@ -28,6 +27,10 @@ walkdir = "2"
 [dependencies.chrono]
 version = "0.4"
 features = ["serde"]
+
+[dependencies.image-meta]
+git = "https://github.com/anekos/image-meta"
+rev = "59aa1e40ddd0a77238ebefcd73e93d0e8fa8767f"
 
 [dependencies.rusqlite]
 version = "0.16"
