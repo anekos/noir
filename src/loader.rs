@@ -18,6 +18,7 @@ pub struct Config<'a> {
     pub check_extension: bool,
     pub compute_dhash: bool,
     pub dry_run: bool,
+    pub skip_errors: bool,
     pub tag_generator: Option<&'a str>,
     pub update: bool,
 }
@@ -56,6 +57,17 @@ impl<'a> Loader<'a> {
     }
 
     fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
+        if let Err(err) = self.load_file_inner(file) {
+            if self.config.skip_errors {
+                eprintln!("SKIP: {}", err);
+            } else {
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+
+    fn load_file_inner<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         log::trace!("load_file: {:?}", file.as_ref());
         if self.config.check_extension && !has_image_extension(&file)? {
             return Ok(());

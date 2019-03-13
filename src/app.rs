@@ -265,9 +265,10 @@ fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
     let check_extension = matches.is_present("check-extension");
     let compute_dhash = matches.is_present("dhash");
     let dry_run = matches.is_present("dry-run");
+    let skip_errors = matches.is_present("skip-errors");
     let tag_generator = matches.value_of("tag-script");
     let update = matches.is_present("update");
-    Config { check_extension, compute_dhash, dry_run, tag_generator, update }
+    Config { check_extension, compute_dhash, dry_run, skip_errors, tag_generator, update }
 }
 
 fn join(strings: &[&str]) -> String {
