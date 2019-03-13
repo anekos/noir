@@ -80,17 +80,21 @@ impl<'a> Loader<'a> {
             println!("DRYRUN: {:?}", file);
             return Ok(())
         }
-        if let Ok(meta) = Meta::from_file(&file, self.config.compute_dhash) {
-            self.count += 1;
-            if self.count % 100 == 0 {
-                self.db.flush()?;
-            }
-            let tags = self.generate_tags(&file)?;
-            let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(&it)).collect();
-            self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
-            self.db.upsert(&meta)?;
-            println!("{}", meta);
+
+        let meta = Meta::from_file(&file, self.config.compute_dhash)?;
+
+        self.count += 1;
+        if self.count % 100 == 0 {
+            self.db.flush()?;
         }
+
+        let tags = self.generate_tags(&file)?;
+        let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(&it)).collect();
+        self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
+        self.db.upsert(&meta)?;
+
+        println!("{}", meta);
+
         Ok(())
     }
 
