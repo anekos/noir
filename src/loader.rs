@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use if_let_return::if_let_some;
 
 use crate::database::Database;
-use crate::errors::{AppError, AppResult, AppResultU, from_os_str, from_path, wrap_io_error};
+use crate::errors::{AppError, AppResult, AppResultU, from_os_str, from_path, wrap_with_path};
 use crate::meta::Meta;
 use crate::tag::Tag;
 
@@ -38,7 +38,7 @@ impl<'a> Loader<'a> {
     pub fn load<T: AsRef<Path>>(&mut self, path: &T) -> AppResultU {
         log::trace!("load: {:?}", path.as_ref());
 
-        wrap_io_error(path, {
+        wrap_with_path(path, {
             if path.as_ref().is_dir() {
                 self.load_directory(path)
             } else if path.as_ref().is_file() {
@@ -99,7 +99,7 @@ impl<'a> Loader<'a> {
         log::trace!("load_directory: {:?}", directory.as_ref());
         let walker = WalkDir::new(directory).follow_links(true);
         for entry in walker.into_iter().filter_map(|it| it.ok()).filter(|it| it.file_type().is_file()) {
-            wrap_io_error(&entry.path(), self.load_file(&entry.path()))?
+            wrap_with_path(&entry.path(), self.load_file(&entry.path()))?
         }
         Ok(())
     }
