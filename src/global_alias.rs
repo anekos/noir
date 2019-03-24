@@ -18,6 +18,10 @@ pub struct GlobalAliasTable {
     tags: Vec<String>,
 }
 
+pub struct Iter {
+    iter: IntoIter<String, Alias>
+}
+
 
 impl GlobalAliasTable {
     pub fn add(&mut self, from: String, to: String, recursive: bool) {
@@ -28,10 +32,10 @@ impl GlobalAliasTable {
         self.table.remove(name);
     }
 
-    pub fn into_iter(self) -> IntoIter<String, Alias> {
-        self.table.into_iter()
-    }
-
+    // pub fn into_iter(self) -> IntoIter<String, Alias> {
+    //     self.table.into_iter()
+    // }
+    //
     pub fn names(&self) -> Vec<&str> {
         let mut result: Vec<&str> = self.table.keys().map(|it| it.as_ref()).collect();
         result.sort();
@@ -67,5 +71,23 @@ impl GlobalAliasTable {
         let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(&self.path)?;
         write!(file, "{}", source)?;
         Ok(())
+    }
+}
+
+
+impl std::iter::Iterator for Iter {
+    type Item = (String, Alias);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+impl std::iter::IntoIterator for GlobalAliasTable {
+    type Item = (String, Alias);
+    type IntoIter = Iter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { iter: self.table.into_iter() }
     }
 }
