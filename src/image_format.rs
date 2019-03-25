@@ -34,9 +34,11 @@ impl ImageFormatExt for ImageMeta {
         use image_meta::Format::*;
 
         match self.format {
+            Bmp => "bmp",
             Gif => "gif",
             Jpeg => "jpeg",
             Png => "png",
+            Webp => "webp",
         }
     }
 }

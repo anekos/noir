@@ -30,7 +30,7 @@ features = ["serde"]
 
 [dependencies.image-meta]
 git = "https://github.com/anekos/image-meta"
-rev = "6c18ba081c18454fc97ffba5bc4ee68f7994630c"
+rev = "c78dedb80dc29d7ed984a14303d99ece62f505f2"
 
 [dependencies.rusqlite]
 version = "0.16"
