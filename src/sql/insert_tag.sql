@@ -1,2 +1,6 @@
-INSERT INTO tags VALUES (?1, ?2)
-
+INSERT INTO tags
+SELECT ?1, ?2
+WHERE NOT EXISTS (
+  SELECT 1 FROM tags
+  WHERE tag = ?1 AND path = ?2
+)
