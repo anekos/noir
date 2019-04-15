@@ -78,11 +78,7 @@ impl Database {
         let path = from_path(&path)?;
         let mut stmt = self.connection.prepare("SELECT * FROM images WHERE path = ?1")?;
         let mut iter = stmt.query_and_then(&[&path as &ToSql], from_row)?;
-        if let Some(found) = iter.next() {
-            Ok(Some(found?))
-        } else {
-            Ok(None)
-        }
+        iter.next().transpose()
     }
 
     pub fn upsert(&self, meta: &Meta) -> AppResultU {
