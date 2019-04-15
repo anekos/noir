@@ -1,6 +1,7 @@
 
 use std::collections::HashMap;
 use std::collections::hash_map::IntoIter;
+use std::convert::AsRef;
 use std::fs::{File, OpenOptions, create_dir_all};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -37,7 +38,7 @@ impl GlobalAliasTable {
     // }
     //
     pub fn names(&self) -> Vec<&str> {
-        let mut result: Vec<&str> = self.table.keys().map(|it| it.as_ref()).collect();
+        let mut result: Vec<&str> = self.table.keys().map(AsRef::as_ref).collect();
         result.sort();
         result
     }

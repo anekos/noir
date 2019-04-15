@@ -1,7 +1,9 @@
 
+use std::borrow::ToOwned;
 use std::io::BufRead;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::result::Result;
 use std::str::FromStr;
 
 use walkdir::WalkDir;
@@ -102,7 +104,7 @@ impl<'a> Loader<'a> {
         println!("Loading: {:?}", directory.as_ref());
         log::trace!("load_directory: {:?}", directory.as_ref());
         let walker = WalkDir::new(directory).follow_links(true);
-        for entry in walker.into_iter().filter_map(|it| it.ok()).filter(|it| it.file_type().is_file()) {
+        for entry in walker.into_iter().filter_map(Result::ok).filter(|it| it.file_type().is_file()) {
             wrap_with_path(&entry.path(), self.load_file(&entry.path()))?
         }
         Ok(())
@@ -120,7 +122,7 @@ impl<'a> Loader<'a> {
             return Err(AppError::TagGeneratorFailed(err));
         }
         let result = String::from_utf8(command.output()?.stdout)?;
-        Ok(result.lines().filter(|it| !it.is_empty()).map(|it| it.to_owned()).collect())
+        Ok(result.lines().filter(|it| !it.is_empty()).map(ToOwned::to_owned).collect())
     }
 }
 

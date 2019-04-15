@@ -1,6 +1,7 @@
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter, stderr, stdin, stdout, Write};
+use std::iter::Iterator;
 use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
@@ -41,7 +42,7 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
 
     if let Some(ref matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name");
-        let expressions: Option<Vec<&str>> = matches.values_of("expression").map(|it| it.collect());
+        let expressions: Option<Vec<&str>> = matches.values_of("expression").map(Iterator::collect);
         let recursive = matches.is_present("recursive");
         let local = matches.is_present("local");
         command_alias(&db, aliases, name, expressions, recursive, local)?;
@@ -74,18 +75,18 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
     } else if let Some(ref matches) = matches.subcommand_matches("tag") {
         if let Some(ref matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
             command_tag_add(&db, path, &tags)?;
         } else if let Some(ref matches) = matches.subcommand_matches("clear") {
             let path: &str = matches.value_of("path").unwrap();
             command_tag_clear(&db, path)?;
         } else if let Some(ref matches) = matches.subcommand_matches("remove") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
             command_tag_remove(&db, path, &tags)?;
         } else if let Some(ref matches) = matches.subcommand_matches("set") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(|it| it.collect()).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
             command_tag_set(&db, path, &tags)?;
         } else if let Some(ref matches) = matches.subcommand_matches("show") {
             let path: Option<&str> = matches.value_of("path");
