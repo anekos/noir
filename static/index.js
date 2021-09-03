@@ -1,6 +1,7 @@
 
 async function main() {
   let timerHandle = null;
+  let founds = []
 
   function setRandom(founds) {
       const index = Math.floor(Math.random() * founds.items.length)
@@ -32,7 +33,7 @@ async function main() {
     if (timerHandle)
       clearInterval(timerHandle)
 
-    const founds = await fetch('/search', {
+    founds = await fetch('/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,8 +60,15 @@ async function main() {
     onMenuSwitch()
   }
 
-  search(`path like '%wallpaper%'`)
+  function onImageError() {
+    setTimeout(_ => setRandom(founds), 500)
+  }
+
+  const hash = location.hash.substr(1)
+  search(hash.length ? hash : `path like '%wallpaper%'`)
+
   document.querySelector('#image').addEventListener('click', e => toggleFullScreen(), true);
+  document.querySelector('#image').addEventListener('error', onImageError, true);
   document.querySelector('#search-button').addEventListener('click', onSearchButton, true);
   Array.from(document.querySelectorAll('.menu-switch')).forEach(it => it.addEventListener('mouseenter', onMenuSwitch, false));
   Array.from(document.querySelectorAll('.menu-panel')).forEach(it => it.addEventListener('mouseleave', onMenuSwitch, true));
