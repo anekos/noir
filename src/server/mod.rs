@@ -61,7 +61,7 @@ async fn file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> 
 }
 
 #[actix_web::main]
-pub async fn start(db: Database, aliases: GlobalAliasTable) -> std::io::Result<()> {
+pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16) -> std::io::Result<()> {
     let data = web::Data::new(Mutex::new(AppData{aliases, db}));
 
     HttpServer::new(move || {
@@ -70,5 +70,5 @@ pub async fn start(db: Database, aliases: GlobalAliasTable) -> std::io::Result<(
             .service(web::resource("/search").route(web::post().to(search)))
             .service(web::resource("/file").route(web::get().to(file)))
             .service(Files::new("/", "static").index_file("index.html"))
-    }).bind(("0.0.0.0", 8080))?.run().await
+    }).bind(("0.0.0.0", port))?.run().await
 }
