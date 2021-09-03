@@ -26,6 +26,39 @@
         width: 100%;
         height: 100%;
       }
+
+      .menu-switch {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 100%;
+        width: 10px;
+        font-size: 10em;
+        color: white;
+        background-color: blue;
+        z-index: 1000;
+        opacity: 0;
+      }
+
+      .menu-panel {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 100%;
+        width: 50%;
+        font-size: 10em;
+        color: white;
+        background-color: blue;
+      }
+
+      #search-expression {
+        font-size: 30px;
+        width: 80%;
+      }
+
+      .hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -34,44 +67,16 @@
       <img id="image" />
     </div>
 
-    <script>
-      function setRandom(founds) {
-          const index = Math.floor(Math.random() * founds.items.length)
-          // const index = 0
-          const path = founds.items[index].file.path;
-          document.getElementById('image').src = `/file?path=${encodeURIComponent(path)}`
-      }
+    <div class="menu-switch">
+    </div>
 
-      function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          }
-        }
-      }
+    <div class="menu-panel hidden">
+      <form onsubmit="return false;">
+        <input type="text" id="search-expression" value="fhd" />
+        <button id="search-button">Search</button>
+      </form>
+    </div>
 
-      async function search(expression) {
-        const founds = await fetch('/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({expression}),
-        }).then(it => it.json());
-
-        setRandom(founds)
-        setInterval(_ => setRandom(founds), 10 * 1000)
-
-        document.addEventListener('click', e => toggleFullScreen(), false);
-      }
-
-      async function main() {
-        search(`path like '%wallpaper%'`)
-      }
-
-      main()
-    </script>
+    <script src="/static/index.js"></script>
   </body>
 </html>

@@ -69,6 +69,7 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16) -> std::i
             .app_data(data.clone())
             .service(web::resource("/search").route(web::post().to(search)))
             .service(web::resource("/file").route(web::get().to(file)))
+            .service(Files::new("/static/", "static/"))
             .service(Files::new("/", "static").index_file("index.html"))
     }).bind(("0.0.0.0", port))?.run().await
 }
