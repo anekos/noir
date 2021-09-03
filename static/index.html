@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .image-container {
+        background: #004040;
+        width: 100%;
+        height: 100%;
+      }
+
+      #image {
+        object-fit: contain;
+        object-position: 50% 50%;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="image-container">
+      <img id="image" />
+    </div>
+
+    <script>
+      function setRandom(founds) {
+          const index = Math.floor(Math.random() * founds.items.length)
+          // const index = 0
+          const path = founds.items[index].file.path;
+          document.getElementById('image').src = `/file?path=${encodeURIComponent(path)}`
+      }
+
+      function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      }
+
+      async function search(expression) {
+        const founds = await fetch('/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({expression}),
+        }).then(it => it.json());
+
+        setRandom(founds)
+        setInterval(_ => setRandom(founds), 10 * 1000)
+
+        document.addEventListener('click', e => toggleFullScreen(), false);
+      }
+
+      async function main() {
+        search(`path like '%wallpaper%'`)
+      }
+
+      main()
+    </script>
+  </body>
+</html>

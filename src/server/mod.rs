@@ -2,10 +2,12 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::Mutex;
 
-use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use actix_files::Files;
+use actix_web::{App, HttpResponse, HttpServer, web};
 use serde::{Deserialize, Serialize};
 
 use crate::database::Database;
+use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
 use crate::meta::Meta;
@@ -32,9 +34,9 @@ struct QueryResult {
     expression: String,
 }
 
-async fn index(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> impl Responder {
-    let data = data.lock().unwrap();
-    let expander = Expander::generate(&data.db, &data.aliases).unwrap(); // FIXME
+async fn search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let expander = Expander::generate(&data.db, &data.aliases)?;
     let expression = expander.expand(&query.expression);
 
     let mut items: Vec<Meta> = vec![];
@@ -42,26 +44,20 @@ async fn index(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -
     data.db.select(&expression, false, |meta, _vacuumed| {
         items.push(meta.clone());
         Ok(())
-    }).expect("select"); // FIXME
+    })?;
 
-    HttpResponse::Ok().json(QueryResult { items, expression })
+    Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
 }
 
-async fn file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> impl Responder {
-    let data = data.lock().unwrap();
-    if let Ok(found) = data.db.get(&query.path) {
-        if let Some(found) = found {
-            let mut content: Vec<u8> = vec![];
-            let mut file = File::open(&found.file.path).expect("Could not open");
-            file.read_to_end(&mut content).expect("Could not read");
-            let content_type = format!("image/{}", found.format);
-            HttpResponse::Ok().content_type(content_type).body(content)
-        } else {
-            HttpResponse::NotFound().body("File not found")
-        }
-    } else {
-        HttpResponse::BadRequest().body("Bad request")
-    }
+async fn file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock file");
+    let found = data.db.get(&query.path)?;
+    let found = found.ok_or(AppError::Void)?;
+    let mut content: Vec<u8> = vec![];
+    let mut file = File::open(&found.file.path)?;
+    file.read_to_end(&mut content)?;
+    let content_type = format!("image/{}", found.format);
+    Ok(HttpResponse::Ok().content_type(content_type).body(content))
 }
 
 #[actix_web::main]
@@ -71,7 +67,8 @@ pub async fn start(db: Database, aliases: GlobalAliasTable) -> std::io::Result<(
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
-            .service(web::resource("/").route(web::post().to(index)))
+            .service(web::resource("/search").route(web::post().to(search)))
             .service(web::resource("/file").route(web::get().to(file)))
+            .service(Files::new("/", "static").index_file("index.html"))
     }).bind(("0.0.0.0", 8080))?.run().await
 }
