@@ -12,7 +12,7 @@ use crate::errors::{AppResult, AppResultU};
 
 
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct GlobalAliasTable {
     path: PathBuf,
     table: HashMap<String, Alias>,
@@ -39,7 +39,7 @@ impl GlobalAliasTable {
     //
     pub fn names(&self) -> Vec<&str> {
         let mut result: Vec<&str> = self.table.keys().map(AsRef::as_ref).collect();
-        result.sort();
+        result.sort_unstable();
         result
     }
 

@@ -29,7 +29,7 @@ macro_rules! sql {
 impl Database {
     pub fn add_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         for tag in tags {
-            let args = &[&tag as &ToSql, &path as &ToSql];
+            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
             self.connection.execute(sql!(insert_tag), args)?;
         }
         Ok(())
@@ -77,14 +77,14 @@ impl Database {
         let path = Path::new(path).canonicalize().unwrap_or_else(|_| Path::new(path).to_path_buf());
         let path = from_path(&path)?;
         let mut stmt = self.connection.prepare("SELECT * FROM images WHERE path = ?1")?;
-        let mut iter = stmt.query_and_then(&[&path as &ToSql], from_row)?;
+        let mut iter = stmt.query_and_then(&[&path as &dyn ToSql], from_row)?;
         iter.next().transpose()
     }
 
     pub fn upsert(&self, meta: &Meta) -> AppResultU {
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
-            &meta.file.path as &ToSql,
+            &meta.file.path as &dyn ToSql,
             &meta.dimensions.width,
             &meta.dimensions.height,
             &width,
@@ -92,7 +92,7 @@ impl Database {
             &meta.format,
             &meta.animation,
             &(meta.file.size as u32),
-            &(meta.dhash as i64) as &ToSql,
+            &(meta.dhash as i64) as &dyn ToSql,
             &meta.file.created.as_ref(),
             &meta.file.modified.as_ref(),
             &meta.file.accessed.as_ref(),
@@ -103,7 +103,7 @@ impl Database {
     }
 
     pub fn upsert_alias(&self, name: &str, original: &str, recursive: bool) -> AppResultU {
-        let args = &[&name as &ToSql, &original as &ToSql, &recursive as &ToSql];
+        let args = &[&name as &dyn ToSql, &original as &dyn ToSql, &recursive as &dyn ToSql];
         self.connection.execute(sql!(update_alias), args)?;
         self.connection.execute(sql!(insert_alias), args)?;
         Ok(())
@@ -121,7 +121,7 @@ impl Database {
 
     pub fn path_exists(&self, path: &str) -> AppResult<bool> {
         let mut stmt = self.connection.prepare("SELECT 1 FROM images WHERE path = ?;")?;
-        Ok(stmt.exists(&[&path as &ToSql])?)
+        Ok(stmt.exists(&[&path as &dyn ToSql])?)
     }
 
     pub fn reset(&self) -> AppResultU {
@@ -167,7 +167,7 @@ impl Database {
 
     pub fn delete_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         for tag in tags {
-            let args = &[&tag as &ToSql, &path as &ToSql];
+            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
             self.connection.execute(sql!(delete_tag), args)?;
         }
         Ok(())

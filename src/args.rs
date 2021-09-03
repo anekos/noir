@@ -105,6 +105,7 @@ pub fn build_cli() -> App<'static, 'static> {
                          .help("SQL Where clause")
                          .required(true)
                          .min_values(1)))
+        .subcommand(SubCommand::with_name("server"))
         .subcommand(SubCommand::with_name("tag")
                     .alias("t")
                     .about("Manage tags")

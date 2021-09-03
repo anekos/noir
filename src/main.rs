@@ -16,6 +16,7 @@ mod image_format;
 mod loader;
 mod meta;
 mod output_format;
+mod server;
 mod tag;
 
 use crate::errors::{AppError, AppResult, AppResultU};

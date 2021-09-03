@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 app_dirs = "1.2"
 clap = "2.31"
+actix-web = "3"
 dhash = "0.1"
 env_logger = "0.6"
 failure = "0.1"

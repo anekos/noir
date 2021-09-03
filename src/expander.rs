@@ -25,9 +25,10 @@ impl Expander {
         self.untag(&result).to_string()
     }
 
-    pub fn generate(database: &Database, global_alias_table: GlobalAliasTable) -> AppResult<Self> {
+    pub fn generate(database: &Database, global_alias_table: &GlobalAliasTable) -> AppResult<Self> {
         let local = database.aliases()?;
-        let global = global_alias_table.into_iter().collect();
+        // FIXME remove clone
+        let global = global_alias_table.clone().into_iter().collect();
         let tags = database.tags()?;
         Ok(Self::new(local, global, tags))
     }
@@ -72,7 +73,7 @@ impl Expander {
             return expression.into();
         }
         self.tags_pattern.replace_all(
-            &expression,
+            expression,
             |captures: &Captures| {
                 let tag = captures.get(1).unwrap().as_str();
                 format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)
