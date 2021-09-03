@@ -91,7 +91,7 @@ impl<'a> Loader<'a> {
         }
 
         let tags = self.generate_tags(&file)?;
-        let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(&it)).collect();
+        let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(it)).collect();
         self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
         self.db.upsert(&meta)?;
 
@@ -128,10 +128,7 @@ impl<'a> Loader<'a> {
 
 fn has_image_extension<T: AsRef<Path>>(file: &T) -> AppResult<bool> {
     let result = if let Some(extension) = file.as_ref().extension() {
-        match &*from_os_str(&extension)?.to_lowercase() {
-            "png" | "jpg" | "jpeg" | "gif" | "webp" => true,
-            _ => false,
-        }
+        matches!(&*from_os_str(extension)?.to_lowercase(), "png" | "jpg" | "jpeg" | "gif" | "webp")
     } else {
         false
     };

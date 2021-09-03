@@ -72,7 +72,7 @@ impl Expander {
             return expression.into();
         }
         self.tags_pattern.replace_all(
-            &expression,
+            expression,
             |captures: &Captures| {
                 let tag = captures.get(1).unwrap().as_str();
                 format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag)

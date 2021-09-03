@@ -40,62 +40,62 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
     let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
     let mut aliases = GlobalAliasTable::open(&aliases_file, &db)?;
 
-    if let Some(ref matches) = matches.subcommand_matches("alias") {
+    if let Some(matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name");
         let expressions: Option<Vec<&str>> = matches.values_of("expression").map(Iterator::collect);
         let recursive = matches.is_present("recursive");
         let local = matches.is_present("local");
         command_alias(&db, aliases, name, expressions, recursive, local)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("completions") {
+    } else if let Some(matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("noir", shell.parse().unwrap(), &mut stdout());
-    } else if let Some(ref matches) = matches.subcommand_matches("expand") {
+    } else if let Some(matches) = matches.subcommand_matches("expand") {
         let expression = matches.value_of("expression").unwrap();
         let full = matches.is_present("full");
         command_expand(&db, aliases, expression, full)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("get") {
+    } else if let Some(matches) = matches.subcommand_matches("get") {
         let path = matches.value_of("path").unwrap();
         let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
         command_get(&db, path, format)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("load") {
+    } else if let Some(matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         command_load(&db, &paths, extract_loader_config(matches))?;
-    } else if let Some(ref matches) = matches.subcommand_matches("load-list") {
+    } else if let Some(matches) = matches.subcommand_matches("load-list") {
         let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
         command_load_list(&db, &paths, extract_loader_config(matches))?;
     } else if matches.is_present("path") {
         println!("{}", from_path(&db_file)?);
     } else if matches.is_present("reset") {
         command_reset(&db)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("search") {
+    } else if let Some(matches) = matches.subcommand_matches("search") {
         let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
         let vacuum = matches.is_present("vacuum");
         let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
         command_search(&db, aliases, &join(&wheres), vacuum, format)?;
-    } else if let Some(ref matches) = matches.subcommand_matches("tag") {
-        if let Some(ref matches) = matches.subcommand_matches("add") {
+    } else if let Some(matches) = matches.subcommand_matches("tag") {
+        if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
             command_tag_add(&db, path, &tags)?;
-        } else if let Some(ref matches) = matches.subcommand_matches("clear") {
+        } else if let Some(matches) = matches.subcommand_matches("clear") {
             let path: &str = matches.value_of("path").unwrap();
             command_tag_clear(&db, path)?;
-        } else if let Some(ref matches) = matches.subcommand_matches("remove") {
+        } else if let Some(matches) = matches.subcommand_matches("remove") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
             command_tag_remove(&db, path, &tags)?;
-        } else if let Some(ref matches) = matches.subcommand_matches("set") {
+        } else if let Some(matches) = matches.subcommand_matches("set") {
             let path: &str = matches.value_of("path").unwrap();
-            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_else(|| vec![]);
+            let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
             command_tag_set(&db, path, &tags)?;
-        } else if let Some(ref matches) = matches.subcommand_matches("show") {
+        } else if let Some(matches) = matches.subcommand_matches("show") {
             let path: Option<&str> = matches.value_of("path");
             command_tag_show(&db, path)?;
         } else {
             eprintln!("{}", matches.usage());
             exit(1);
         }
-    } else if let Some(ref matches) = matches.subcommand_matches("unalias") {
+    } else if let Some(matches) = matches.subcommand_matches("unalias") {
         let name = matches.value_of("name").unwrap();
         let local = matches.is_present("local");
         command_unalias(&db, &mut aliases, name, local)?;
@@ -226,7 +226,7 @@ fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
 fn command_tag_show(db: &Database, path: Option<&str>) -> AppResultU {
     if let Some(path) = path {
         let path = Path::new(path).canonicalize()?;
-        for tag in db.tags_by_path(&from_path(&path)?)? {
+        for tag in db.tags_by_path(from_path(&path)?)? {
             println!("{}", tag);
         }
     } else {
