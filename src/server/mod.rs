@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Read;
 use std::sync::Mutex;
 
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
@@ -15,7 +17,12 @@ struct AppData {
 }
 
 #[derive(Deserialize)]
-struct Query {
+struct FileQuery {
+    path: String
+}
+
+#[derive(Deserialize)]
+struct SearchQuery {
     expression: String
 }
 
@@ -25,7 +32,7 @@ struct QueryResult {
     expression: String,
 }
 
-async fn index(data: web::Data<Mutex<AppData>>, query: web::Json<Query>) -> impl Responder {
+async fn index(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> impl Responder {
     let data = data.lock().unwrap();
     let expander = Expander::generate(&data.db, &data.aliases).unwrap(); // FIXME
     let expression = expander.expand(&query.expression);
@@ -40,6 +47,23 @@ async fn index(data: web::Data<Mutex<AppData>>, query: web::Json<Query>) -> impl
     HttpResponse::Ok().json(QueryResult { items, expression })
 }
 
+async fn file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> impl Responder {
+    let data = data.lock().unwrap();
+    if let Ok(found) = data.db.get(&query.path) {
+        if let Some(found) = found {
+            let mut content: Vec<u8> = vec![];
+            let mut file = File::open(&found.file.path).expect("Could not open");
+            file.read_to_end(&mut content).expect("Could not read");
+            let content_type = format!("image/{}", found.format);
+            HttpResponse::Ok().content_type(content_type).body(content)
+        } else {
+            HttpResponse::NotFound().body("File not found")
+        }
+    } else {
+        HttpResponse::BadRequest().body("Bad request")
+    }
+}
+
 #[actix_web::main]
 pub async fn start(db: Database, aliases: GlobalAliasTable) -> std::io::Result<()> {
     let data = web::Data::new(Mutex::new(AppData{aliases, db}));
@@ -47,8 +71,7 @@ pub async fn start(db: Database, aliases: GlobalAliasTable) -> std::io::Result<(
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
-            .service(
-                web::resource("/").route(
-                    web::post().to(index)))
+            .service(web::resource("/").route(web::post().to(index)))
+            .service(web::resource("/file").route(web::get().to(file)))
     }).bind(("0.0.0.0", 8080))?.run().await
 }
