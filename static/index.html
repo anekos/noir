@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      .image-container {
+        background: #004040;
+        width: 100%;
+        height: 100%;
+      }
+
+      #image {
+        object-fit: contain;
+        object-position: 50% 50%;
+        width: 100%;
+        height: 100%;
+      }
+
+      .menu-switch {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 100%;
+        width: 10px;
+        font-size: 10em;
+        color: white;
+        background-color: blue;
+        z-index: 1000;
+        opacity: 0;
+      }
+
+      .menu-panel {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        height: 100%;
+        width: 50%;
+        font-size: 10em;
+        color: white;
+        background-color: blue;
+      }
+
+      #search-expression {
+        font-size: 30px;
+        width: 80%;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="image-container">
+      <img id="image" />
+    </div>
+
+    <div class="menu-switch">
+    </div>
+
+    <div class="menu-panel hidden">
+      <form onsubmit="return false;">
+        <input type="text" id="search-expression" value="fhd" />
+        <button id="search-button">Search</button>
+      </form>
+    </div>
+
+    <script src="/static/index.js"></script>
+  </body>
+</html>

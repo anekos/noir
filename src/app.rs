@@ -18,6 +18,7 @@ use crate::global_alias::GlobalAliasTable;
 use crate::loader::Config;
 use crate::loader;
 use crate::output_format::OutputFormat;
+use crate::server::start as start_server;
 use crate::tag::Tag;
 
 
@@ -72,6 +73,9 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         let vacuum = matches.is_present("vacuum");
         let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
         command_search(&db, aliases, &join(&wheres), vacuum, format)?;
+    } else if let Some(matches) = matches.subcommand_matches("server") {
+        let port: u16 = matches.value_of("port").unwrap_or("9696").parse()?;
+        return command_server(db, aliases, port);
     } else if let Some(matches) = matches.subcommand_matches("tag") {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -118,7 +122,7 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
         Ok(())
     });
     if_let_some!(expressions = expressions, {
-        let expander = Expander::generate(db, aliases)?;
+        let expander = Expander::generate(db, &aliases)?;
         println!("{}", expander.expand(name));
         Ok(())
     });
@@ -133,7 +137,7 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
 }
 
 fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
-    let expander = Expander::generate(db, aliases)?;
+    let expander = Expander::generate(db, &aliases)?;
     let expanded = expander.expand(expression);
     if full {
         println!("{}{}", crate::database::SELECT_PREFIX, expanded);
@@ -191,7 +195,7 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     let mut error = BufWriter::new(error);
     let mut output = BufWriter::new(output);
 
-    let expander = Expander::generate(db, aliases)?;
+    let expander = Expander::generate(db, &aliases)?;
     let expression = expander.expand(expression);
 
     db.select(&expression, vacuum, |meta, vacuumed| {
@@ -202,6 +206,11 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
         }
         Ok(())
     })
+}
+
+fn command_server(db: Database, aliases: GlobalAliasTable, port: u16) -> AppResultU {
+    start_server(db, aliases, port)?;
+    Ok(())
 }
 
 fn command_tag_add(db: &Database, path: &str, tags: &[&str]) -> AppResultU {

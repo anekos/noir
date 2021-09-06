@@ -2,6 +2,9 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
+use actix_web::{
+    error, dev::HttpResponseBuilder, http::header, http::StatusCode, HttpResponse,
+};
 use failure::Fail;
 
 
@@ -99,5 +102,18 @@ impl From<std::io::Error> for AppError {
         } else {
             AppError::Io(error)
         }
+    }
+}
+
+
+impl error::ResponseError for AppError {
+    fn error_response(&self) -> HttpResponse {
+        HttpResponseBuilder::new(self.status_code())
+            .set_header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
     }
 }

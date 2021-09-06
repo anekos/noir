@@ -12,7 +12,7 @@ use crate::errors::{AppResult, AppResultU};
 
 
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct GlobalAliasTable {
     path: PathBuf,
     table: HashMap<String, Alias>,

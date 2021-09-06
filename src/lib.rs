@@ -9,6 +9,5 @@ pub mod image_format;
 pub mod loader;
 pub mod meta;
 pub mod output_format;
+pub mod server;
 pub mod tag;
-
-
