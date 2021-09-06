@@ -75,7 +75,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         command_search(&db, aliases, &join(&wheres), vacuum, format)?;
     } else if let Some(matches) = matches.subcommand_matches("server") {
         let port: u16 = matches.value_of("port").unwrap_or("9696").parse()?;
-        return command_server(db, aliases, port);
+        let root: &str = matches.value_of("root").unwrap_or("static");
+        return command_server(db, aliases, port, root);
     } else if let Some(matches) = matches.subcommand_matches("tag") {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -208,8 +209,8 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     })
 }
 
-fn command_server(db: Database, aliases: GlobalAliasTable, port: u16) -> AppResultU {
-    start_server(db, aliases, port)?;
+fn command_server(db: Database, aliases: GlobalAliasTable, port: u16, root: &str) -> AppResultU {
+    start_server(db, aliases, port, root.to_owned())?;
     Ok(())
 }
 
