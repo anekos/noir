@@ -2,8 +2,9 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::Mutex;
 
+use actix_cors::Cors;
 use actix_files::Files;
-use actix_web::{App, HttpResponse, HttpServer, web};
+use actix_web::{App, HttpResponse, HttpServer, http, web};
 use serde::{Deserialize, Serialize};
 
 use crate::database::Database;
@@ -65,7 +66,14 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16) -> std::i
     let data = web::Data::new(Mutex::new(AppData{aliases, db}));
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+             .allow_any_origin()
+             .allowed_methods(vec!["GET", "POST"])
+             .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+             .allowed_header(http::header::CONTENT_TYPE)
+             .max_age(3600);
         App::new()
+            .wrap(cors)
             .app_data(data.clone())
             .service(web::resource("/search").route(web::post().to(search)))
             .service(web::resource("/file").route(web::get().to(file)))
