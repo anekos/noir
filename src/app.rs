@@ -37,8 +37,14 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
             path
         }
     };
+    let aliases_file = {
+        if let Some(path) = matches.value_of("alias-file") {
+            Path::new(path).to_owned()
+        } else {
+            get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap()
+        }
+    };
     let db = Database::open(&db_file)?;
-    let aliases_file = get_app_dir(AppDataType::UserConfig, &APP_INFO, "aliases.yaml").unwrap();
     let mut aliases = GlobalAliasTable::open(&aliases_file, &db)?;
 
     if let Some(matches) = matches.subcommand_matches("alias") {
