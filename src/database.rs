@@ -67,6 +67,19 @@ impl Database {
         Ok(())
     }
 
+    pub fn delete_alias(&self, name: &str) -> AppResultU {
+        self.connection.execute("DELETE FROM aliases WHERE name = ?1", &[name])?;
+        Ok(())
+    }
+
+    pub fn delete_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
+        for tag in tags {
+            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
+            self.connection.execute(sql!(delete_tag), args)?;
+        }
+        Ok(())
+    }
+
     pub fn flush(&self) -> AppResultU {
         self.connection.execute("COMMIT;", NO_PARAMS)?;
         self.connection.execute("BEGIN;", NO_PARAMS)?;
@@ -79,34 +92,6 @@ impl Database {
         let mut stmt = self.connection.prepare("SELECT * FROM images WHERE path = ?1")?;
         let mut iter = stmt.query_and_then(&[&path as &dyn ToSql], from_row)?;
         iter.next().transpose()
-    }
-
-    pub fn upsert(&self, meta: &Meta) -> AppResultU {
-        let (width, height) = &meta.dimensions.ratio();
-        let args = &[
-            &meta.file.path as &dyn ToSql,
-            &meta.dimensions.width,
-            &meta.dimensions.height,
-            &width,
-            &height,
-            &meta.format,
-            &meta.animation,
-            &(meta.file.size as u32),
-            &(meta.dhash as i64) as &dyn ToSql,
-            &meta.file.created.as_ref(),
-            &meta.file.modified.as_ref(),
-            &meta.file.accessed.as_ref(),
-        ];
-        self.connection.execute(sql!(update_image), args)?;
-        self.connection.execute(sql!(insert_image), args)?;
-        Ok(())
-    }
-
-    pub fn upsert_alias(&self, name: &str, original: &str, recursive: bool) -> AppResultU {
-        let args = &[&name as &dyn ToSql, &original as &dyn ToSql, &recursive as &dyn ToSql];
-        self.connection.execute(sql!(update_alias), args)?;
-        self.connection.execute(sql!(insert_alias), args)?;
-        Ok(())
     }
 
     pub fn open<T: AsRef<Path>>(file: &T) -> AppResult<Self> {
@@ -148,6 +133,10 @@ impl Database {
         Ok(())
     }
 
+    pub fn set_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
+        self.clear_tags(path)?;
+        self.add_tags(path, tags)
+    }
     pub fn tags(&self) -> AppResult<Vec<String>> {
         let mut stmt = self.connection.prepare("SELECT DISTINCT tag FROM tags ORDER BY length(tag)")?;
         let result: rusqlite::Result<Vec<String>> = stmt.query_map(NO_PARAMS, |row: &Row| row.get(0))?.collect();
@@ -160,22 +149,32 @@ impl Database {
         Ok(result?)
     }
 
-    pub fn delete_alias(&self, name: &str) -> AppResultU {
-        self.connection.execute("DELETE FROM aliases WHERE name = ?1", &[name])?;
+    pub fn upsert(&self, meta: &Meta) -> AppResultU {
+        let (width, height) = &meta.dimensions.ratio();
+        let args = &[
+            &meta.file.path as &dyn ToSql,
+            &meta.dimensions.width,
+            &meta.dimensions.height,
+            &width,
+            &height,
+            &meta.format,
+            &meta.animation,
+            &(meta.file.size as u32),
+            &(meta.dhash as i64) as &dyn ToSql,
+            &meta.file.created.as_ref(),
+            &meta.file.modified.as_ref(),
+            &meta.file.accessed.as_ref(),
+        ];
+        self.connection.execute(sql!(update_image), args)?;
+        self.connection.execute(sql!(insert_image), args)?;
         Ok(())
     }
 
-    pub fn delete_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
-        for tag in tags {
-            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
-            self.connection.execute(sql!(delete_tag), args)?;
-        }
+    pub fn upsert_alias(&self, name: &str, original: &str, recursive: bool) -> AppResultU {
+        let args = &[&name as &dyn ToSql, &original as &dyn ToSql, &recursive as &dyn ToSql];
+        self.connection.execute(sql!(update_alias), args)?;
+        self.connection.execute(sql!(insert_alias), args)?;
         Ok(())
-    }
-
-    pub fn set_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
-        self.clear_tags(path)?;
-        self.add_tags(path, tags)
     }
 }
 
