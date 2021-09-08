@@ -7,7 +7,7 @@ use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS, Row};
 
 use crate::alias::Alias;
-use crate::errors::{AppResult, AppResultU, from_path};
+use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::meta::Meta;
 use crate::tag::Tag;
 
@@ -149,6 +149,14 @@ impl Database {
         Ok(result?)
     }
 
+    pub fn get_total_images(&self) -> AppResult<u64> {
+        let mut stmt = self.connection.prepare("SELECT COUNT(*) FROM images")?;
+        let mut iter = stmt.query(NO_PARAMS)?;
+        let r = iter.next().ok_or(AppError::Standard("No records"))?;
+        let r: i64 = r?.get_checked(0)?;
+        Ok(r as u64)
+    }
+
     pub fn upsert(&self, meta: &Meta) -> AppResultU {
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
@@ -174,6 +182,23 @@ impl Database {
         let args = &[&name as &dyn ToSql, &original as &dyn ToSql, &recursive as &dyn ToSql];
         self.connection.execute(sql!(update_alias), args)?;
         self.connection.execute(sql!(insert_alias), args)?;
+        Ok(())
+    }
+
+    pub fn vacuum<F>(&self, mut f: F) -> AppResultU where F: FnMut(&Meta, u64, u64, bool) -> AppResultU {
+        let total_images: u64 = self.get_total_images()?;
+        let mut current: u64 = 0;
+        let mut stmt = self.connection.prepare("SELECT * FROM images")?;
+        let iter = stmt.query_and_then(NO_PARAMS, from_row)?;
+        for it in iter {
+            let it = it?;
+            current += 1;
+            let vacuumed = !Path::new(&it.file.path).is_file();
+            if vacuumed {
+                self.delete_path(&it.file.path)?;
+            }
+            f(&it, current, total_images, vacuumed)?;
+        }
         Ok(())
     }
 }

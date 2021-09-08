@@ -9,6 +9,7 @@ use std::str::FromStr;
 use app_dirs::{AppInfo, AppDataType, get_app_dir};
 use clap::ArgMatches;
 use if_let_return::if_let_some;
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::args;
 use crate::database::Database;
@@ -110,6 +111,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         let name = matches.value_of("name").unwrap();
         let local = matches.is_present("local");
         command_unalias(&db, &mut aliases, name, local)?;
+    } else if matches.subcommand_matches("vacuum").is_some() {
+        command_vacuum(&db)?;
     } else {
         eprintln!("{}", matches.usage());
         exit(1);
@@ -275,6 +278,25 @@ fn command_unalias(db: &Database, aliases: &mut GlobalAliasTable, name: &str, lo
         aliases.delete(name);
         aliases.save()?;
     }
+    Ok(())
+}
+
+fn command_vacuum(db: &Database) -> AppResultU {
+    let total_images = db.get_total_images()?;
+    let mut vacummed_images: u64 = 0;
+    let bar = ProgressBar::new(total_images);
+    let sty = ProgressStyle::default_bar()
+                .template("{elapsed_precise} {bar:40.cyan/blue} {pos:>7}/{len:7} (ETA {eta}) {msg} images")
+                        .progress_chars("██░");
+    bar.set_style(sty);
+    db.vacuum(|_meta, _current, _total, vacuumed| {
+        if vacuumed {
+            vacummed_images += 1;
+        }
+        bar.set_message(format!("{}", vacummed_images));
+        bar.inc(1);
+        Ok(())
+    })?;
     Ok(())
 }
 

@@ -42,6 +42,8 @@ pub enum AppError {
     SerdeJson(serde_json::Error),
     #[fail(display = "YAML Error: {}", 0)]
     SerdeYaml(serde_yaml::Error),
+    #[fail(display = "{}", 0)]
+    Standard(&'static str),
     #[fail(display = "Database error: {}", 0)]
     Sqlite(rusqlite::Error),
     #[fail(display = "Tag generator failed: {}", 0)]
