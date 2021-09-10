@@ -51,6 +51,10 @@ impl Expander {
         }
     }
 
+    pub fn names(&self) -> Vec<&str> {
+        self.aliases.keys().map(String::as_ref).collect()
+    }
+
     fn unalias<'b>(&self, expression: &'b str) -> Cow<'b, str> {
         if self.aliases.is_empty() {
             return expression.into()

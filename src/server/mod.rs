@@ -35,7 +35,25 @@ struct QueryResult {
     expression: String,
 }
 
-async fn search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
+async fn on_aliases(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let expander = Expander::generate(&data.db, &data.aliases)?;
+    let aliases: Vec<&str> = expander.names();
+    Ok(HttpResponse::Ok().json(aliases))
+}
+
+async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock file");
+    let found = data.db.get(&query.path)?;
+    let found = found.ok_or(AppError::Void)?;
+    let mut content: Vec<u8> = vec![];
+    let mut file = File::open(&found.file.path)?;
+    file.read_to_end(&mut content)?;
+    let content_type = format!("image/{}", found.format);
+    Ok(HttpResponse::Ok().content_type(content_type).body(content))
+}
+
+async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
     let expression = expander.expand(&query.expression);
@@ -48,17 +66,6 @@ async fn search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) 
     })?;
 
     Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
-}
-
-async fn file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
-    let data = data.lock().expect("lock file");
-    let found = data.db.get(&query.path)?;
-    let found = found.ok_or(AppError::Void)?;
-    let mut content: Vec<u8> = vec![];
-    let mut file = File::open(&found.file.path)?;
-    file.read_to_end(&mut content)?;
-    let content_type = format!("image/{}", found.format);
-    Ok(HttpResponse::Ok().content_type(content_type).body(content))
 }
 
 #[actix_web::main]
@@ -75,8 +82,9 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
         App::new()
             .wrap(cors)
             .app_data(data.clone())
-            .service(web::resource("/search").route(web::post().to(search)))
-            .service(web::resource("/file").route(web::get().to(file)))
+            .service(web::resource("/search").route(web::post().to(on_search)))
+            .service(web::resource("/aliases").route(web::get().to(on_aliases)))
+            .service(web::resource("/file").route(web::get().to(on_file)))
             .service(Files::new("/", &root).index_file("index.html"))
     }).bind(("0.0.0.0", port))?.run().await
 }
