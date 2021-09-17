@@ -12,6 +12,7 @@ use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
 use crate::meta::Meta;
+use crate::search_history::SearchHistory;
 
 
 struct AppData {
@@ -53,6 +54,12 @@ async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) 
     Ok(HttpResponse::Ok().content_type(content_type).body(content))
 }
 
+async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let history: Vec<SearchHistory> = data.db.search_history()?;
+    Ok(HttpResponse::Ok().json(history))
+}
+
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
@@ -91,10 +98,11 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
         App::new()
             .wrap(cors)
             .app_data(data.clone())
-            .service(web::resource("/search").route(web::post().to(on_search)))
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
-            .service(web::resource("/tags").route(web::get().to(on_tags)))
             .service(web::resource("/file").route(web::get().to(on_file)))
+            .service(web::resource("/history").route(web::get().to(on_history)))
+            .service(web::resource("/search").route(web::post().to(on_search)))
+            .service(web::resource("/tags").route(web::get().to(on_tags)))
             .service(Files::new("/", &root).index_file("index.html"))
     }).bind(("0.0.0.0", port))?.run().await
 }
