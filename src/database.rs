@@ -129,7 +129,7 @@ impl Database {
     }
 
     pub fn search_history(&self) -> AppResult<Vec<SearchHistory>> {
-        let mut stmt = self.connection.prepare("SELECT expression, uses FROM search_history")?;
+        let mut stmt = self.connection.prepare("SELECT expression, uses FROM search_history ORDER BY modified DESC")?;
         let result: rusqlite::Result<Vec<SearchHistory>> = stmt.query_map(
             NO_PARAMS,
             |row: &Row|
