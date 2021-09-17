@@ -42,13 +42,6 @@ async fn on_aliases(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
     Ok(HttpResponse::Ok().json(aliases))
 }
 
-async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
-    let data = data.lock().expect("lock search");
-    let expander = Expander::generate(&data.db, &data.aliases)?;
-    let tags: Vec<&str> = expander.get_tag_names();
-    Ok(HttpResponse::Ok().json(tags))
-}
-
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock file");
     let found = data.db.get(&query.path)?;
@@ -75,6 +68,13 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
     data.db.add_search_history(&query.expression)?;
 
     Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
+}
+
+async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let expander = Expander::generate(&data.db, &data.aliases)?;
+    let tags: Vec<&str> = expander.get_tag_names();
+    Ok(HttpResponse::Ok().json(tags))
 }
 
 #[actix_web::main]
