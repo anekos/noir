@@ -38,8 +38,15 @@ struct QueryResult {
 async fn on_aliases(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
-    let aliases: Vec<&str> = expander.names();
+    let aliases: Vec<&str> = expander.get_alias_names();
     Ok(HttpResponse::Ok().json(aliases))
+}
+
+async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let expander = Expander::generate(&data.db, &data.aliases)?;
+    let tags: Vec<&str> = expander.get_tag_names();
+    Ok(HttpResponse::Ok().json(tags))
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
@@ -84,6 +91,7 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
             .app_data(data.clone())
             .service(web::resource("/search").route(web::post().to(on_search)))
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
+            .service(web::resource("/tags").route(web::get().to(on_tags)))
             .service(web::resource("/file").route(web::get().to(on_file)))
             .service(Files::new("/", &root).index_file("index.html"))
     }).bind(("0.0.0.0", port))?.run().await

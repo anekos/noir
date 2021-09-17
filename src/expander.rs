@@ -51,8 +51,12 @@ impl Expander {
         }
     }
 
-    pub fn names(&self) -> Vec<&str> {
+    pub fn get_alias_names(&self) -> Vec<&str> {
         self.aliases.keys().map(String::as_ref).collect()
+    }
+
+    pub fn get_tag_names(&self) -> Vec<&str> {
+        self.tags.iter().map(String::as_ref).collect()
     }
 
     fn unalias<'b>(&self, expression: &'b str) -> Cow<'b, str> {
