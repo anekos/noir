@@ -35,6 +35,7 @@ impl Database {
         let args = &[&where_expression as &dyn ToSql, &now as &dyn ToSql];
         self.connection.execute(sql!(update_search_history), args)?;
         self.connection.execute(sql!(insert_search_history), args)?;
+        self.flush()?;
         Ok(())
     }
 
