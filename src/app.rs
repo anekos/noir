@@ -206,16 +206,18 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
-    let expression = expander.expand(expression);
+    let expanded_expression = expander.expand(expression);
 
-    db.select(&expression, vacuum, |meta, vacuumed| {
+    db.select(&expanded_expression, vacuum, |meta, vacuumed| {
         if vacuumed {
             writeln!(error, "Vacuumed: {}", meta.file.path)?;
         } else {
             format.write(&mut output, meta)?;
         }
         Ok(())
-    })
+    })?;
+
+    db.add_search_history(&expression)
 }
 
 fn command_server(db: Database, aliases: GlobalAliasTable, port: u16, root: &str) -> AppResultU {

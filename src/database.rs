@@ -5,6 +5,8 @@ use std::path::Path;
 
 use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS, Row};
+use chrono::DateTime;
+use chrono::offset::Utc;
 
 use crate::alias::Alias;
 use crate::errors::{AppError, AppResult, AppResultU, from_path};
@@ -27,6 +29,14 @@ macro_rules! sql {
 
 
 impl Database {
+    pub fn add_search_history(&self, where_expression: &str) -> AppResultU {
+        let now: DateTime<Utc> = Utc::now();
+        let args = &[&where_expression as &dyn ToSql, &now as &dyn ToSql];
+        self.connection.execute(sql!(update_search_history), args)?;
+        self.connection.execute(sql!(insert_search_history), args)?;
+        Ok(())
+    }
+
     pub fn add_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
         for tag in tags {
             let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
@@ -212,6 +222,7 @@ fn create_table(conn: &Connection) -> AppResultU {
     create(conn, sql!(create_tags_table))?;
     create(conn, sql!(create_tags_index))?;
     create(conn, sql!(create_aliases_table))?;
+    create(conn, sql!(create_search_history_table))?;
     Ok(())
 }
 

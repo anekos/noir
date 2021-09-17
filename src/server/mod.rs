@@ -72,6 +72,8 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
         Ok(())
     })?;
 
+    data.db.add_search_history(&query.expression)?;
+
     Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
 }
 
