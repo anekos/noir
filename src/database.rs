@@ -32,7 +32,8 @@ macro_rules! sql {
 impl Database {
     pub fn add_search_history(&self, where_expression: &str) -> AppResultU {
         let now: DateTime<Utc> = Utc::now();
-        let args = &[&where_expression as &dyn ToSql, &now as &dyn ToSql];
+        let exp = where_expression.trim();
+        let args = &[&exp as &dyn ToSql, &now as &dyn ToSql];
         self.connection.execute(sql!(update_search_history), args)?;
         self.connection.execute(sql!(insert_search_history), args)?;
         self.flush()?;
