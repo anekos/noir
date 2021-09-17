@@ -27,7 +27,8 @@ struct FileQuery {
 
 #[derive(Deserialize)]
 struct SearchQuery {
-    expression: String
+    expression: String,
+    record: Option<bool>
 }
 
 #[derive(Serialize)]
@@ -72,7 +73,9 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
         Ok(())
     })?;
 
-    data.db.add_search_history(&query.expression)?;
+    if query.record.unwrap_or(false) {
+        data.db.add_search_history(&query.expression)?;
+    }
 
     Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
 }
