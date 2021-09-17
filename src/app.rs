@@ -65,6 +65,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         let path = matches.value_of("path").unwrap();
         let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
         command_get(&db, path, format)?;
+    } else if matches.subcommand_matches("history").is_some() {
+        command_history(&db)?;
     } else if let Some(matches) = matches.subcommand_matches("load") {
         let paths: Vec<&str> = matches.values_of("path").unwrap().collect();
         command_load(&db, &paths, extract_loader_config(matches))?;
@@ -165,6 +167,13 @@ fn command_get(db: &Database, path: &str, format: OutputFormat) -> AppResultU {
     } else {
         eprintln!("Entry Not found");
         exit(1);
+    }
+    Ok(())
+}
+
+fn command_history(db: &Database) -> AppResultU {
+    for entry in db.search_history()? {
+        println!("{}", entry.expression);
     }
     Ok(())
 }

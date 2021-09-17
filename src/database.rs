@@ -11,6 +11,7 @@ use chrono::offset::Utc;
 use crate::alias::Alias;
 use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::meta::Meta;
+use crate::search_history::SearchHistory;
 use crate::tag::Tag;
 
 
@@ -125,6 +126,20 @@ impl Database {
         self.flush()?;
         create_table(&self.connection)?;
         Ok(())
+    }
+
+    pub fn search_history(&self) -> AppResult<Vec<SearchHistory>> {
+        let mut stmt = self.connection.prepare("SELECT expression, uses FROM search_history")?;
+        let result: rusqlite::Result<Vec<SearchHistory>> = stmt.query_map(
+            NO_PARAMS,
+            |row: &Row|
+            SearchHistory {
+                expression: row.get(0),
+                uses: row.get(1)
+            }
+        )?.collect();
+
+        Ok(result?)
     }
 
     pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&Meta, bool) -> AppResultU {

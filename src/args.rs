@@ -66,6 +66,8 @@ pub fn build_cli() -> App<'static, 'static> {
                     .arg(format.clone())
                     .arg(Arg::with_name("path")
                          .required(true)))
+        .subcommand(SubCommand::with_name("history")
+                    .about("Search expression history"))
         .subcommand(
             load_args(
                 SubCommand::with_name("load")
