@@ -171,7 +171,12 @@ pub fn build_cli() -> App<'static, 'static> {
                     .arg(Arg::with_name("name")
                          .required(true)))
         .subcommand(SubCommand::with_name("vacuum")
-                    .about("Remove deleted files"))
+                    .about("Remove deleted files")
+                    .arg(Arg::with_name("prefix")
+                         .help("Path prefix")
+                         .short("p")
+                         .long("prefix")
+                         .takes_value(true)))
 }
 
 fn load_args<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {

@@ -113,8 +113,9 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         let name = matches.value_of("name").unwrap();
         let local = matches.is_present("local");
         command_unalias(&db, &mut aliases, name, local)?;
-    } else if matches.subcommand_matches("vacuum").is_some() {
-        command_vacuum(&db)?;
+    } else if let Some(matches) = matches.subcommand_matches("vacuum") {
+        let prefix: Option<&str> = matches.value_of("prefix");
+        command_vacuum(&db, prefix)?;
     } else {
         eprintln!("{}", matches.usage());
         exit(1);
@@ -292,15 +293,15 @@ fn command_unalias(db: &Database, aliases: &mut GlobalAliasTable, name: &str, lo
     Ok(())
 }
 
-fn command_vacuum(db: &Database) -> AppResultU {
-    let total_images = db.get_total_images()?;
+fn command_vacuum(db: &Database, prefix: Option<&str>) -> AppResultU {
+    let total_images = db.get_total_images(prefix)?;
     let mut vacummed_images: u64 = 0;
     let bar = ProgressBar::new(total_images);
     let sty = ProgressStyle::default_bar()
                 .template("{elapsed_precise} {bar:40.cyan/blue} {pos:>7}/{len:7} (ETA {eta}) {msg} images")
                         .progress_chars("██░");
     bar.set_style(sty);
-    db.vacuum(|_meta, _current, _total, vacuumed| {
+    db._vacuum(prefix, |_meta, _current, vacuumed| {
         if vacuumed {
             vacummed_images += 1;
         }

@@ -176,9 +176,14 @@ impl Database {
         Ok(result?)
     }
 
-    pub fn get_total_images(&self) -> AppResult<u64> {
-        let mut stmt = self.connection.prepare("SELECT COUNT(*) FROM images")?;
-        let mut iter = stmt.query(NO_PARAMS)?;
+    pub fn get_total_images(&self, prefix: Option<&str>) -> AppResult<u64> {
+        let sql = format!("SELECT COUNT(*) FROM images {}", maybe_prefixed_where_clause(prefix));
+        let mut stmt = self.connection.prepare(&sql)?;
+        let mut iter = if let Some(path) = prefix {
+            stmt.query(&[&path as &dyn ToSql])?
+        } else {
+            stmt.query(NO_PARAMS)?
+        };
         let r = iter.next().ok_or(AppError::Standard("No records"))?;
         let r: i64 = r?.get_checked(0)?;
         Ok(r as u64)
@@ -212,19 +217,25 @@ impl Database {
         Ok(())
     }
 
-    pub fn vacuum<F>(&self, mut f: F) -> AppResultU where F: FnMut(&Meta, u64, u64, bool) -> AppResultU {
-        let total_images: u64 = self.get_total_images()?;
+    pub fn _vacuum<F>(&self, prefix: Option<&str>, mut f: F) -> AppResultU where F: FnMut(&Meta, u64, bool) -> AppResultU {
         let mut current: u64 = 0;
-        let mut stmt = self.connection.prepare("SELECT * FROM images")?;
-        let iter = stmt.query_and_then(NO_PARAMS, from_row)?;
+        let sql = format!("SELECT * FROM images {}", maybe_prefixed_where_clause(prefix));
+        let mut stmt = self.connection.prepare(&sql)?;
+
+        let iter = if let Some(path) = prefix {
+            stmt.query_and_then(&[&path as &dyn ToSql], from_row)?
+        } else {
+            stmt.query_and_then(NO_PARAMS, from_row)?
+        };
+
         for it in iter {
             let it = it?;
             current += 1;
-            let vacuumed = !Path::new(&it.file.path).is_file();
-            if vacuumed {
+            let is_target = !Path::new(&it.file.path).is_file();
+            if is_target {
                 self.delete_path(&it.file.path)?;
             }
-            f(&it, current, total_images, vacuumed)?;
+            f(&it, current, is_target)?;
         }
         Ok(())
     }
@@ -267,4 +278,12 @@ fn from_row(row: &Row) -> AppResult<Meta> {
         },
     };
     Ok(result)
+}
+
+fn maybe_prefixed_where_clause(prefix: Option<&str>) -> &'static str {
+    if prefix.is_some() {
+        "WHERE path like (?1 || '%')"
+    } else {
+        ""
+    }
 }
