@@ -16,6 +16,7 @@ use crate::tag::Tag;
 
 
 
+#[derive(Debug, Default, Clone)]
 pub struct Config<'a> {
     pub check_extension: bool,
     pub compute_dhash: bool,
@@ -51,14 +52,7 @@ impl<'a> Loader<'a> {
         })
     }
 
-    pub fn load_list<T: BufRead>(&mut self, list: &mut T) -> AppResultU {
-        for line in list.lines() {
-            self.load(&line?)?;
-        }
-        Ok(())
-    }
-
-    fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
+    pub fn load_file<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         if let Err(err) = self.load_file_inner(file) {
             if self.config.skip_errors {
                 eprintln!("SKIP: {} for {:?}", err, file.as_ref());
@@ -69,20 +63,31 @@ impl<'a> Loader<'a> {
         Ok(())
     }
 
+    pub fn load_list<T: BufRead>(&mut self, list: &mut T) -> AppResultU {
+        for line in list.lines() {
+            self.load(&line?)?;
+        }
+        Ok(())
+    }
+
     fn load_file_inner<T: AsRef<Path>>(&mut self, file: &T) -> AppResultU {
         log::trace!("load_file: {:?}", file.as_ref());
         if self.config.check_extension && !has_image_extension(&file)? {
+            log::trace!("load_file.skip.1");
             return Ok(());
         }
         let file = file.as_ref().canonicalize()?;
         if !self.config.update && self.db.path_exists(from_path(&file)?)? {
+            log::trace!("load_file.skip.2");
             return Ok(());
         }
         if self.config.dry_run {
             println!("DRYRUN: {:?}", file);
+            log::trace!("load_file.skip.3");
             return Ok(())
         }
 
+        log::trace!("load_file.meta");
         let meta = Meta::from_file(&file, self.config.compute_dhash)?;
 
         self.count += 1;
@@ -95,6 +100,7 @@ impl<'a> Loader<'a> {
         self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
         self.db.upsert(&meta)?;
 
+        log::trace!("load_file.done");
         println!("{}", meta);
 
         Ok(())

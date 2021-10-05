@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use actix_web::{
     error, dev::HttpResponseBuilder, http::header, http::StatusCode, HttpResponse,
 };
+use curl;
 use failure::Fail;
 
 
@@ -20,6 +21,8 @@ pub enum AppError {
     AppDir(app_dirs::AppDirsError),
     #[fail(display = "clap: {}", 0)]
     Clap(clap::Error),
+    #[fail(display = "curl: {}", 0)]
+    Curl(curl::Error),
     #[fail(display = "Failed to load directory: {}", 0)]
     DirectoryWalking(walkdir::Error),
     #[fail(display = "{}", 0)]
@@ -71,6 +74,7 @@ macro_rules! define_error {
 
 define_error!(app_dirs::AppDirsError, AppDir);
 define_error!(clap::Error, Clap);
+define_error!(curl::Error, Curl);
 define_error!(image::ImageError, ImageLoading);
 define_error!(image_meta::ImageError, ImageMetaLoading);
 define_error!(rusqlite::Error, Sqlite);

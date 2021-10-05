@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
+use std::str::FromStr;
 use std::sync::Mutex;
 
 use actix_cors::Cors;
@@ -11,13 +13,18 @@ use crate::database::Database;
 use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
+use crate::loader;
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
+use crate::tag::Tag;
+
+mod download;
 
 
 struct AppData {
-    db: Database,
     aliases: GlobalAliasTable,
+    db: Database,
+    download_to: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -37,11 +44,46 @@ struct QueryResult {
     expression: String,
 }
 
+#[derive(Deserialize)]
+struct DownloadRequest {
+    tags: Option<Vec<String>>,
+    to: String,
+    url: String,
+}
+
 async fn on_aliases(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
     let aliases: Vec<&str> = expander.get_alias_names();
     Ok(HttpResponse::Ok().json(aliases))
+}
+
+async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<DownloadRequest>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock downlod");
+
+    if let Some(download_to) = &data.download_to {
+        let mut download_to = Path::new(&download_to).to_path_buf();
+        download_to.push(&request.to);
+
+        download::download(&request.url, &download_to)?;
+
+        let config = loader::Config::default();
+        let mut loader = loader::Loader::new(&data.db, config);
+        loader.load_file(&download_to)?;
+        if let Some(ref tags) = request.tags {
+            let mut _tags = vec![];
+            for tag in tags {
+                _tags.push(Tag::from_str(&tag)?);
+            }
+            let download_to = download_to.to_str().unwrap();
+            data.db.add_tags(&download_to, &_tags)?;
+        }
+        data.db.flush()?;
+
+        return Ok(HttpResponse::Ok().json("ok"))
+    }
+
+    Err(AppError::Standard("`download-to` option is not given"))
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
@@ -88,8 +130,8 @@ async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
 }
 
 #[actix_web::main]
-pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: String) -> std::io::Result<()> {
-    let data = web::Data::new(Mutex::new(AppData{aliases, db}));
+pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: String, download_to: Option<String>) -> std::io::Result<()> {
+    let data = web::Data::new(Mutex::new(AppData{aliases, db, download_to}));
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -102,6 +144,7 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
             .wrap(cors)
             .app_data(data.clone())
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
+            .service(web::resource("/download").route(web::post().to(on_download)))
             .service(web::resource("/file").route(web::get().to(on_file)))
             .service(web::resource("/history").route(web::get().to(on_history)))
             .service(web::resource("/search").route(web::post().to(on_search)))

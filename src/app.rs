@@ -1,4 +1,5 @@
 
+use std::borrow::ToOwned;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, stderr, stdin, stdout, Write};
 use std::iter::Iterator;
@@ -85,7 +86,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
     } else if let Some(matches) = matches.subcommand_matches("server") {
         let port: u16 = matches.value_of("port").unwrap_or("9696").parse()?;
         let root: &str = matches.value_of("root").unwrap_or("static");
-        return command_server(db, aliases, port, root);
+        let download_to: Option<&str> = matches.value_of("download-to");
+        return command_server(db, aliases, port, root, download_to);
     } else if let Some(matches) = matches.subcommand_matches("tag") {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -230,8 +232,8 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     db.add_search_history(&expression)
 }
 
-fn command_server(db: Database, aliases: GlobalAliasTable, port: u16, root: &str) -> AppResultU {
-    start_server(db, aliases, port, root.to_owned())?;
+fn command_server(db: Database, aliases: GlobalAliasTable, port: u16, root: &str, download_to: Option<&str>) -> AppResultU {
+    start_server(db, aliases, port, root.to_owned(), download_to.map(ToOwned::to_owned))?;
     Ok(())
 }
 
