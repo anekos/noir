@@ -1,5 +1,6 @@
+use std::fs;
+use std::io::Write;
 use std::path::Path;
-use std::{fs::OpenOptions, io::Write};
 
 use curl::easy::Easy as EasyCurl;
 
@@ -7,7 +8,11 @@ use crate::errors::AppResultU;
 
 
 pub fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
-    let mut file = OpenOptions::new()
+    if let Some(parent) = download_to.as_ref().parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let mut file = fs::OpenOptions::new()
         .read(false)
         .write(true).
         append(false)
