@@ -62,12 +62,14 @@ async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> A
 async fn on_alias_delete(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock delete alias");
     data.db.delete_alias(&name)?;
+    data.db.flush()?;
     Ok(HttpResponse::Ok().json(true))
 }
 
 async fn on_alias_update(data: web::Data<Mutex<AppData>>, name: web::Path<String>, alias: web::Json<Alias>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock set alias");
     data.db.upsert_alias(&name, &alias.expression, alias.recursive)?;
+    data.db.flush()?;
     Ok(HttpResponse::Ok().json(true))
 }
 
