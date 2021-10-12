@@ -9,6 +9,7 @@ use actix_files::Files;
 use actix_web::{App, HttpResponse, HttpServer, http, web};
 use serde::{Deserialize, Serialize};
 
+use crate::alias::Alias;
 use crate::database::Database;
 use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
@@ -49,6 +50,19 @@ struct DownloadRequest {
     tags: Option<Vec<String>>,
     to: String,
     url: String,
+}
+
+async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock search");
+    let expander = Expander::generate(&data.db, &data.aliases)?;
+    let alias = expander.get_alias(&name);
+    Ok(HttpResponse::Ok().json(alias))
+}
+
+async fn on_alias_update(data: web::Data<Mutex<AppData>>, name: web::Path<String>, alias: web::Json<Alias>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock set alias");
+    data.db.upsert_alias(&name, &alias.expression, alias.recursive)?;
+    Ok(HttpResponse::Ok().json(&*alias))
 }
 
 async fn on_aliases(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
@@ -143,6 +157,9 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
         App::new()
             .wrap(cors)
             .app_data(data.clone())
+            .service(web::resource("/alias/{name}")
+                .route(web::get().to(on_alias))
+                .route(web::post().to(on_alias_update)))
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
             .service(web::resource("/download").route(web::post().to(on_download)))
             .service(web::resource("/file").route(web::get().to(on_file)))

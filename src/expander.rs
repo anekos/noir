@@ -51,6 +51,10 @@ impl Expander {
         }
     }
 
+    pub fn get_alias(&self, name: &str) -> Option<&Alias> {
+        self.aliases.get(name)
+    }
+
     pub fn get_alias_names(&self) -> Vec<&str> {
         self.aliases.keys().map(String::as_ref).collect()
     }
