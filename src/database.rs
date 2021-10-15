@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use std::fs::create_dir_all;
 use std::path::Path;
 
-use rusqlite::types::ToSql;
-use rusqlite::{Connection, NO_PARAMS, Row};
 use chrono::DateTime;
 use chrono::offset::Utc;
+use log::info;
+use rusqlite::types::ToSql;
+use rusqlite::{Connection, NO_PARAMS, Row};
 
 use crate::alias::Alias;
 use crate::errors::{AppError, AppResult, AppResultU, from_path};
@@ -22,6 +23,11 @@ pub struct Database {
     connection: Connection,
 }
 
+pub struct Tx<'a> {
+    database: &'a Database,
+}
+
+
 macro_rules! sql {
     ($name:tt) => {
         include_str!(concat!("sql/", stringify!($name), ".sql"))
@@ -36,7 +42,6 @@ impl Database {
         let args = &[&exp as &dyn ToSql, &now as &dyn ToSql];
         self.connection.execute(sql!(update_search_history), args)?;
         self.connection.execute(sql!(insert_search_history), args)?;
-        self.flush()?;
         Ok(())
     }
 
@@ -64,12 +69,19 @@ impl Database {
         Ok(result?)
     }
 
+    pub fn begin(&self) -> AppResultU {
+        info!("BEGIN");
+        self.connection.execute("BEGIN;", NO_PARAMS)?;
+        Ok(())
+    }
+
     pub fn clear_tags(&self, path: &str) -> AppResultU {
         self.connection.execute(sql!(clear_tags), &[path])?;
         Ok(())
     }
 
-    pub fn close(self) -> AppResultU {
+    pub fn commit(&self) -> AppResultU {
+        info!("COMMIT");
         self.connection.execute("COMMIT;", NO_PARAMS)?;
         Ok(())
     }
@@ -93,12 +105,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn flush(&self) -> AppResultU {
-        self.connection.execute("COMMIT;", NO_PARAMS)?;
-        self.connection.execute("BEGIN;", NO_PARAMS)?;
-        Ok(())
-    }
-
     pub fn get(&self, path: &str) -> AppResult<Option<Meta>> {
         let path = Path::new(path).canonicalize().unwrap_or_else(|_| Path::new(path).to_path_buf());
         let path = from_path(&path)?;
@@ -113,7 +119,6 @@ impl Database {
         }
         let connection = Connection::open(file.as_ref())?;
         create_table(&connection)?;
-        connection.execute("BEGIN;", NO_PARAMS)?;
         Ok(Database { connection })
     }
 
@@ -125,7 +130,6 @@ impl Database {
     pub fn reset(&self) -> AppResultU {
         self.connection.execute("DROP TABLE images", NO_PARAMS)?;
         self.connection.execute("DROP TABLE tags", NO_PARAMS)?;
-        self.flush()?;
         create_table(&self.connection)?;
         Ok(())
     }
@@ -189,6 +193,12 @@ impl Database {
         Ok(r as u64)
     }
 
+    pub fn transaction(&self) -> AppResult<Tx> {
+        self.begin()?;
+        let tx = Tx { database: self };
+        Ok(tx)
+    }
+
     pub fn upsert(&self, meta: &Meta) -> AppResultU {
         let (width, height) = &meta.dimensions.ratio();
         let args = &[
@@ -240,6 +250,14 @@ impl Database {
         Ok(())
     }
 }
+
+
+impl<'a> Drop for Tx<'a> {
+    fn drop(&mut self) {
+        self.database.commit().expect("commit");
+    }
+}
+
 
 fn create_table(conn: &Connection) -> AppResultU {
     fn create(conn: &Connection, sql: &str) -> AppResultU {

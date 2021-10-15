@@ -63,15 +63,15 @@ async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> A
 
 async fn on_alias_delete(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock delete alias");
+    let _tx = data.db.transaction()?;
     data.db.delete_alias(&name)?;
-    data.db.flush()?;
     Ok(HttpResponse::Ok().json(true))
 }
 
 async fn on_alias_update(data: web::Data<Mutex<AppData>>, name: web::Path<String>, alias: web::Json<Alias>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock set alias");
+    let _tx = data.db.transaction()?;
     data.db.upsert_alias(&name, &alias.expression, alias.recursive)?;
-    data.db.flush()?;
     Ok(HttpResponse::Ok().json(true))
 }
 
@@ -92,6 +92,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
         download::download(&request.url, &download_to)?;
 
         let config = loader::Config::default();
+        let _tx = data.db.transaction()?;
         let mut loader = loader::Loader::new(&data.db, config);
         loader.load_file(&download_to)?;
         if let Some(ref tags) = request.tags {
@@ -102,7 +103,6 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
             let download_to = download_to.to_str().unwrap();
             data.db.add_tags(&download_to, &_tags)?;
         }
-        data.db.flush()?;
 
         return Ok(HttpResponse::Ok().json("ok"))
     }

@@ -123,7 +123,6 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         exit(1);
     }
 
-    db.close()?;
     // aliases.save(&aliases_file)?;
 
     Ok(())
@@ -182,6 +181,7 @@ fn command_history(db: &Database) -> AppResultU {
 }
 
 fn command_load(db: &Database, paths: &[&str], config: Config) -> AppResultU {
+    let _tx = db.transaction()?;
     let mut loader = loader::Loader::new(db, config);
     for path in paths {
         loader.load(&path)?;

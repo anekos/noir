@@ -92,7 +92,8 @@ impl<'a> Loader<'a> {
 
         self.count += 1;
         if self.count % 100 == 0 {
-            self.db.flush()?;
+            self.db.commit()?;
+            self.db.begin()?;
         }
 
         let tags = self.generate_tags(&file)?;
