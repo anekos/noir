@@ -6,7 +6,9 @@ use std::sync::Mutex;
 
 use actix_cors::Cors;
 use actix_files::Files;
+use actix_web::middleware::Logger;
 use actix_web::{App, HttpResponse, HttpServer, http, web};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::alias::Alias;
@@ -111,6 +113,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock file");
     let found = data.db.get(&query.path)?;
+    info!("on_file: file={:?}", query.path);
     let found = found.ok_or(AppError::Void)?;
     let mut content: Vec<u8> = vec![];
     let mut file = File::open(&found.file.path)?;
@@ -163,6 +166,7 @@ pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: Str
              .allowed_header(http::header::CONTENT_TYPE)
              .max_age(3600);
         App::new()
+            .wrap(Logger::default())
             .wrap(cors)
             .app_data(data.clone())
             .service(web::resource("/alias/{name}")
