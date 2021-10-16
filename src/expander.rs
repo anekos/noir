@@ -38,7 +38,8 @@ impl Expander {
         for (k, v) in local.into_iter() {
             aliases.insert(k, v);
         }
-        let names: Vec<&String> = aliases.keys().collect();
+        let mut names: Vec<&String> = aliases.keys().collect();
+        names.sort_by_key(|it| usize::MAX - it.len());
         let alias_pattern = word_pattern(&names, "");
 
         let tags_pattern = word_pattern(&tags, "#");
