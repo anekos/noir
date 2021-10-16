@@ -27,7 +27,7 @@ impl From<Tag> for Value {
 
 impl ToSql for Tag {
     fn to_sql(&self) -> QResult<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::Borrowed(ValueRef::Text(&self.0)))
+        Ok(ToSqlOutput::Borrowed(ValueRef::Text(&self.0.as_bytes())))
     }
 }
 

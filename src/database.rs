@@ -7,7 +7,7 @@ use chrono::DateTime;
 use chrono::offset::Utc;
 use log::info;
 use rusqlite::types::ToSql;
-use rusqlite::{Connection, NO_PARAMS, Row};
+use rusqlite::{Connection, Row};
 
 use crate::alias::Alias;
 use crate::errors::{AppError, AppResult, AppResultU, from_path};
@@ -56,22 +56,22 @@ impl Database {
     pub fn aliases(&self) -> AppResult<HashMap<String, Alias>> {
         let mut stmt = self.connection.prepare("SELECT * FROM aliases")?;
         let result: rusqlite::Result<HashMap<String, Alias>> = stmt.query_map(
-            NO_PARAMS,
+            [],
             |row: &Row|
-            (
-                row.get(0),
+            Ok((
+                row.get(0)?,
                 Alias {
-                    expression: row.get(1),
-                    recursive: row.get(2)
+                    expression: row.get(1)?,
+                    recursive: row.get(2)?
                 }
-            ))?.collect();
+            )))?.collect();
 
         Ok(result?)
     }
 
     pub fn begin(&self) -> AppResultU {
         info!("BEGIN");
-        self.connection.execute("BEGIN;", NO_PARAMS)?;
+        self.connection.execute("BEGIN;", [])?;
         Ok(())
     }
 
@@ -82,7 +82,7 @@ impl Database {
 
     pub fn commit(&self) -> AppResultU {
         info!("COMMIT");
-        self.connection.execute("COMMIT;", NO_PARAMS)?;
+        self.connection.execute("COMMIT;", [])?;
         Ok(())
     }
 
@@ -128,8 +128,8 @@ impl Database {
     }
 
     pub fn reset(&self) -> AppResultU {
-        self.connection.execute("DROP TABLE images", NO_PARAMS)?;
-        self.connection.execute("DROP TABLE tags", NO_PARAMS)?;
+        self.connection.execute("DROP TABLE images", [])?;
+        self.connection.execute("DROP TABLE tags", [])?;
         create_table(&self.connection)?;
         Ok(())
     }
@@ -137,12 +137,14 @@ impl Database {
     pub fn search_history(&self) -> AppResult<Vec<SearchHistory>> {
         let mut stmt = self.connection.prepare("SELECT expression, uses FROM search_history ORDER BY modified DESC")?;
         let result: rusqlite::Result<Vec<SearchHistory>> = stmt.query_map(
-            NO_PARAMS,
+            [],
             |row: &Row|
-            SearchHistory {
-                expression: row.get(0),
-                uses: row.get(1)
-            }
+            Ok(
+                SearchHistory {
+                    expression: row.get(0)?,
+                    uses: row.get(1)?
+                }
+            )
         )?.collect();
 
         Ok(result?)
@@ -150,7 +152,7 @@ impl Database {
 
     pub fn select<F>(&self, where_expression: &str, vacuum: bool, mut f: F) -> AppResultU where F: FnMut(&Meta, bool) -> AppResultU {
         let mut stmt = self.connection.prepare(&format!("{}{}", SELECT_PREFIX, where_expression))?;
-        let iter = stmt.query_and_then(NO_PARAMS, from_row)?;
+        let iter = stmt.query_and_then([], from_row)?;
 
         for it in iter {
             let it = it?;
@@ -170,7 +172,7 @@ impl Database {
     }
     pub fn tags(&self) -> AppResult<Vec<String>> {
         let mut stmt = self.connection.prepare("SELECT DISTINCT tag FROM tags ORDER BY length(tag)")?;
-        let result: rusqlite::Result<Vec<String>> = stmt.query_map(NO_PARAMS, |row: &Row| row.get(0))?.collect();
+        let result: rusqlite::Result<Vec<String>> = stmt.query_map([], |row: &Row| row.get(0))?.collect();
         Ok(result?)
     }
 
@@ -186,10 +188,10 @@ impl Database {
         let mut iter = if let Some(path) = prefix {
             stmt.query(&[&path as &dyn ToSql])?
         } else {
-            stmt.query(NO_PARAMS)?
+            stmt.query([])?
         };
-        let r = iter.next().ok_or(AppError::Standard("No records"))?;
-        let r: i64 = r?.get_checked(0)?;
+        let r = iter.next()?.ok_or(AppError::Standard("No records"));
+        let r: i64 = r?.get(0)?;
         Ok(r as u64)
     }
 
@@ -235,7 +237,7 @@ impl Database {
         let iter = if let Some(path) = prefix {
             stmt.query_and_then(&[&path as &dyn ToSql], from_row)?
         } else {
-            stmt.query_and_then(NO_PARAMS, from_row)?
+            stmt.query_and_then([], from_row)?
         };
 
         for it in iter {
@@ -261,7 +263,7 @@ impl<'a> Drop for Tx<'a> {
 
 fn create_table(conn: &Connection) -> AppResultU {
     fn create(conn: &Connection, sql: &str) -> AppResultU {
-        conn.execute(sql, NO_PARAMS)?;
+        conn.execute(sql, [])?;
         Ok(())
     }
     create(conn, sql!(create_images_table))?;
@@ -277,22 +279,22 @@ fn from_row(row: &Row) -> AppResult<Meta> {
     use crate::meta::*;
 
     let result = Meta {
-        animation: row.get_checked(6)?,
+        animation: row.get(6)?,
         dhash: {
-            let dhash: i64 = row.get_checked(8)?;
+            let dhash: i64 = row.get(8)?;
             dhash as u64
         },
         dimensions: Dimensions {
-            width: row.get_checked(1)?,
-            height: row.get_checked(2)?,
+            width: row.get(1)?,
+            height: row.get(2)?,
         },
-        format: from_raw(row.get_raw(5))?.to_str(),
+        format: from_raw(row.get_ref_unwrap(5))?.to_str(),
         file: FileMeta {
-            path: row.get_checked(0)?,
-            size: row.get_checked(7)?,
-            created: row.get_checked(9)?,
-            modified: row.get_checked(10)?,
-            accessed: row.get_checked(11)?,
+            path: row.get(0)?,
+            size: row.get(7)?,
+            created: row.get(9)?,
+            modified: row.get(10)?,
+            accessed: row.get(11)?,
         },
     };
     Ok(result)

@@ -21,6 +21,7 @@ pub struct Expander {
 
 impl Expander {
     pub fn expand(&self, expression: &str) -> String {
+        println!("expand: {:?}", expression);
         let result = self.unalias(expression);
         self.untag(&result).to_string()
     }
