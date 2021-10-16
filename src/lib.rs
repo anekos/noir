@@ -2,6 +2,7 @@ pub mod alias;
 pub mod app;
 pub mod args;
 pub mod database;
+pub mod defun;
 pub mod errors;
 pub mod expander;
 pub mod global_alias;

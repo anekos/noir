@@ -9,6 +9,7 @@ mod alias;
 mod app;
 mod args;
 mod database;
+mod defun;
 mod errors;
 mod expander;
 mod global_alias;

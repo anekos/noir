@@ -14,6 +14,7 @@ use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
 use crate::tag::Tag;
+use crate::defun::add_match_functions;
 
 
 
@@ -118,6 +119,7 @@ impl Database {
             create_dir_all(dir)?;
         }
         let connection = Connection::open(file.as_ref())?;
+        add_match_functions(&connection)?;
         create_table(&connection)?;
         Ok(Database { connection })
     }

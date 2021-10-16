@@ -29,6 +29,7 @@ serde_json = "1.0"
 serde_yaml = "0.8"
 shell-escape = "0.1"
 walkdir = "2"
+wildmatch = "*"
 
 [dependencies.chrono]
 version = "0.4"
@@ -40,7 +41,7 @@ rev = "c78dedb80dc29d7ed984a14303d99ece62f505f2"
 
 [dependencies.rusqlite]
 version = "0.26"
-features = ["chrono"]
+features = ["chrono", "functions"]
 
 [dev-dependencies.cargo-husky]
 version = "1"
