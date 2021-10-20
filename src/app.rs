@@ -14,6 +14,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::args;
 use crate::database::Database;
+use crate::server::download::Manager;
 use crate::errors::{AppResult, AppResultU, from_path};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
@@ -87,7 +88,7 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         let port: u16 = matches.value_of("port").unwrap_or("9696").parse()?;
         let root: &str = matches.value_of("root").unwrap_or("static");
         let download_to: Option<&str> = matches.value_of("download-to");
-        return command_server(db, aliases, port, root, download_to);
+        return command_server(db, &db_file, aliases, port, root, download_to);
     } else if let Some(matches) = matches.subcommand_matches("tag") {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
@@ -232,8 +233,9 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     db.add_search_history(&expression)
 }
 
-fn command_server(db: Database, aliases: GlobalAliasTable, port: u16, root: &str, download_to: Option<&str>) -> AppResultU {
-    start_server(db, aliases, port, root.to_owned(), download_to.map(ToOwned::to_owned))?;
+fn command_server<T: AsRef<Path>>(db: Database, db_file: &T, aliases: GlobalAliasTable, port: u16, root: &str, download_to: Option<&str>) -> AppResultU {
+    let manager = Manager::new(Database::open(db_file)?);
+    start_server(db, manager, aliases, port, root.to_owned(), download_to.map(ToOwned::to_owned))?;
     Ok(())
 }
 

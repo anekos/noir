@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::str::FromStr;
 use std::sync::Mutex;
 
 use actix_cors::Cors;
@@ -16,18 +15,17 @@ use crate::database::Database;
 use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
-use crate::loader;
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
-use crate::tag::Tag;
 
-mod download;
+pub mod download;
 
 
-struct AppData {
-    aliases: GlobalAliasTable,
-    db: Database,
-    download_to: Option<String>,
+pub struct AppData {
+    pub aliases: GlobalAliasTable,
+    pub db: Database,
+    pub dl_manager:  download::Manager,
+    pub download_to: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -86,23 +84,15 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
     let data = data.lock().expect("lock downlod");
 
     if let Some(download_to) = &data.download_to {
-        let mut download_to = Path::new(&download_to).to_path_buf();
-        download_to.push(&request.to);
+        let mut to = Path::new(&download_to).to_path_buf();
+        to.push(&request.to);
 
-        download::download(&request.url, &download_to)?;
-
-        let config = loader::Config::default();
-        let _tx = data.db.transaction()?;
-        let mut loader = loader::Loader::new(&data.db, config);
-        loader.load_file(&download_to)?;
-        if let Some(ref tags) = request.tags {
-            let mut _tags = vec![];
-            for tag in tags {
-                _tags.push(Tag::from_str(&tag)?);
-            }
-            let download_to = download_to.to_str().unwrap();
-            data.db.add_tags(&download_to, &_tags)?;
-        }
+        let job = download::Job {
+            to,
+            tags: request.tags.clone(),
+            url: request.url.clone(),
+        };
+        data.dl_manager.download(job);
 
         return Ok(HttpResponse::Ok().json("ok"))
     }
@@ -155,8 +145,17 @@ async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
 }
 
 #[actix_web::main]
-pub async fn start(db: Database, aliases: GlobalAliasTable, port: u16, root: String, download_to: Option<String>) -> std::io::Result<()> {
-    let data = web::Data::new(Mutex::new(AppData{aliases, db, download_to}));
+pub async fn start(
+    db: Database,
+    dl_manager: download::Manager,
+    aliases: GlobalAliasTable,
+    port: u16,
+    root: String,
+    download_to: Option<String>
+) -> std::io::Result<()> {
+
+    let app_data = AppData { aliases, dl_manager, db, download_to };
+    let data = web::Data::new(Mutex::new(app_data));
 
     HttpServer::new(move || {
         let cors = Cors::default()

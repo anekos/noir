@@ -1,13 +1,61 @@
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::sync::mpsc::{channel, Sender};
+use std::thread;
 
 use curl::easy::Easy as EasyCurl;
+use log::error;
 
+use crate::database::Database;
 use crate::errors::AppResultU;
+use crate::loader;
+use crate::tag::Tag;
 
 
-pub fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
+#[derive(Debug)]
+pub struct Job {
+    pub tags: Option<Vec<String>>,
+    pub to: PathBuf,
+    pub url: String,
+}
+
+#[derive(Clone)]
+pub struct Manager {
+    tx: Sender<Job>
+}
+
+impl Manager {
+    pub fn new(db: Database) -> Self {
+        let (tx, rx) = channel::<Job>();
+
+        thread::spawn(move || {
+            while let Ok(job) = rx.recv() {
+                if let Err(err) = job.process(&db) {
+                    error!("Download error: {:?}", err);
+                }
+            }
+        });
+
+        Self {tx}
+    }
+
+    pub fn download(&self, job: Job) {
+        self.tx.send(job).unwrap();
+    }
+}
+
+impl Job {
+    fn process(&self, db: &Database) -> AppResultU {
+        download(&self.url, &self.to)?;
+        write_record(db, self)?;
+        Ok(())
+    }
+}
+
+
+fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
     if let Some(parent) = download_to.as_ref().parent() {
         fs::create_dir_all(parent)?;
     }
@@ -32,5 +80,21 @@ pub fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
     let transfer = curl.transfer();
     transfer.perform()?;
 
+    Ok(())
+}
+
+fn write_record(db: &Database, job: &Job) -> AppResultU {
+    let config = loader::Config::default();
+    let _tx = db.transaction()?;
+    let mut loader = loader::Loader::new(&db, config);
+    loader.load_file(&job.to)?;
+    if let Some(ref tags) = job.tags {
+        let mut _tags = vec![];
+        for tag in tags {
+            _tags.push(Tag::from_str(&tag)?);
+        }
+        let to = job.to.to_str().unwrap();
+        db.add_tags(&to, &_tags)?;
+    }
     Ok(())
 }
