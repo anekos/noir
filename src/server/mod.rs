@@ -19,6 +19,7 @@ use crate::meta::Meta;
 use crate::search_history::SearchHistory;
 
 pub mod download;
+pub mod util;
 
 
 pub struct AppData {
@@ -85,7 +86,8 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
 
     if let Some(download_to) = &data.download_to {
         let mut to = Path::new(&download_to).to_path_buf();
-        to.push(&request.to);
+        let suffix = util::shorten_path(&request.to);
+        to.push(&suffix);
 
         let job = download::Job {
             to,
