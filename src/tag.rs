@@ -12,7 +12,7 @@ use crate::errors::{AppError, AppResult};
 
 
 lazy_static! {
-    static ref TAG_NAME: Regex = Regex::new("[a-zA-Z][-_a-zA-Z0-9]*").unwrap();
+    static ref TAG_NAME: Regex = Regex::new(r"\S+").unwrap();
 }
 
 pub struct Tag(String);
