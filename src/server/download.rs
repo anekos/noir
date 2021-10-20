@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 
-use curl::easy::Easy as EasyCurl;
+use curl::easy::{Easy as EasyCurl, WriteError};
 use log::{error, info};
 
 use crate::database::Database;
@@ -57,7 +57,6 @@ impl Job {
     }
 }
 
-
 fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
     if let Some(parent) = download_to.as_ref().parent() {
         fs::create_dir_all(parent)?;
@@ -68,17 +67,20 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
         .write(true).
         append(false)
         .create(true)
-        .open(download_to).unwrap();
+        .open(download_to)?;
 
     let mut curl = EasyCurl::new();
-    curl.url(url).unwrap();
+    curl.url(url)?;
 
     curl.write_function(move |data| {
-        file.write_all(&data).unwrap();
+        if let Err(err) = file.write_all(&data) {
+            error!("Write error: {:?}", err);
+            return Err(WriteError::Pause);
+        }
         Ok(data.len())
-    }).unwrap();
+    })?;
 
-    curl.perform().unwrap();
+    curl.perform()?;
 
     let transfer = curl.transfer();
     transfer.perform()?;
