@@ -6,7 +6,7 @@ use std::sync::mpsc::{channel, Sender};
 use std::thread;
 
 use curl::easy::Easy as EasyCurl;
-use log::error;
+use log::{error, info};
 
 use crate::database::Database;
 use crate::errors::AppResultU;
@@ -32,8 +32,11 @@ impl Manager {
 
         thread::spawn(move || {
             while let Ok(job) = rx.recv() {
+                info!("Download: {:?}", job);
                 if let Err(err) = job.process(&db) {
                     error!("Download error: {:?}", err);
+                } else {
+                    info!("Downloaded: {:?}", job.url);
                 }
             }
         });
