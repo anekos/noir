@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
+use std::time::Duration;
 use std::{thread, time};
 
 use curl::easy::{Easy as EasyCurl, WriteError};
@@ -71,6 +72,12 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
         .open(download_to)?;
 
     let mut curl = EasyCurl::new();
+
+    curl.timeout(Duration::from_secs(60))?;
+    curl.connect_timeout(Duration::from_secs(10))?;
+    curl.low_speed_time(Duration::from_secs(30))?;
+    curl.low_speed_limit(1024)?;
+
     curl.url(url)?;
 
     curl.write_function(move |data| {
