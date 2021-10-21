@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
-use std::thread;
+use std::{thread, time};
 
 use curl::easy::{Easy as EasyCurl, WriteError};
 use log::{error, info};
@@ -38,6 +38,7 @@ impl Manager {
                 } else {
                     info!("Downloaded: {:?}", job.url);
                 }
+                thread::sleep(time::Duration::from_secs(1));
             }
         });
 
