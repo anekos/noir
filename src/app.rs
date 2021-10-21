@@ -230,7 +230,7 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
         Ok(())
     })?;
 
-    db.add_search_history(&expression)
+    db.add_search_history(expression)
 }
 
 fn command_server<T: AsRef<Path>>(db: Database, db_file: &T, aliases: GlobalAliasTable, port: u16, root: &str, download_to: Option<&str>) -> AppResultU {

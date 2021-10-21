@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use actix_web::{
     error, dev::HttpResponseBuilder, http::header, http::StatusCode, HttpResponse,
 };
-use curl;
 use failure::Fail;
 
 

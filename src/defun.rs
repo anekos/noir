@@ -25,7 +25,7 @@ fn add_match_function(db: &Connection, name: &'static str, ignore_case: bool) ->
                 if ignore_case {
                     Ok(WildMatch::new(&vr.as_str()?.to_lowercase()))
                 } else {
-                    Ok(WildMatch::new(&vr.as_str()?))
+                    Ok(WildMatch::new(vr.as_str()?))
                 }
             })?;
             let is_match = {
@@ -36,7 +36,7 @@ fn add_match_function(db: &Connection, name: &'static str, ignore_case: bool) ->
                 if ignore_case {
                     m.matches(&text.to_lowercase())
                 } else {
-                    m.matches(&text)
+                    m.matches(text)
                 }
 
             };
