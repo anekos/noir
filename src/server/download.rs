@@ -44,7 +44,10 @@ impl Manager {
                 }
 
                 let after = pool.len();
-                info!("Download: Queue: {} (+{})", after, after - before);
+                let delta = after - before;
+                if 0 < delta {
+                    info!("Download: Queue: count={} delta={}", after, delta);
+                }
 
                 if let Some(job) = pool.pop_front() {
                     info!("Download: {:?}", job);
