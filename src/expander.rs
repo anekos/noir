@@ -23,8 +23,9 @@ pub struct Expander {
 impl Expander {
     pub fn expand(&self, expression: &str) -> String {
         let result = self.unalias(expression);
+        let result = self.untag(&result).to_string();
         info!("expand: {:?} → {:?}", expression, result);
-        self.untag(&result).to_string()
+        result
     }
 
     pub fn generate(database: &Database, global_alias_table: &GlobalAliasTable) -> AppResult<Self> {
