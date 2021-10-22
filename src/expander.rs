@@ -2,6 +2,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
+use log::info;
 use regex::{Captures, Regex};
 
 use crate::alias::Alias;
@@ -21,8 +22,8 @@ pub struct Expander {
 
 impl Expander {
     pub fn expand(&self, expression: &str) -> String {
-        println!("expand: {:?}", expression);
         let result = self.unalias(expression);
+        info!("expand: {:?} → {:?}", expression, result);
         self.untag(&result).to_string()
     }
 
