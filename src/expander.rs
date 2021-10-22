@@ -31,7 +31,8 @@ impl Expander {
         let local = database.aliases()?;
         // FIXME remove clone
         let global = global_alias_table.clone().into_iter().collect();
-        let tags = database.tags()?;
+        let mut tags = database.tags()?;
+        tags.reverse();
         Ok(Self::new(local, global, tags))
     }
 
