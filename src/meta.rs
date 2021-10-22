@@ -16,7 +16,7 @@ use crate::errors::{AppResult, from_os_str};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Meta {
     pub animation: bool,
-    pub dhash: u64,
+    pub dhash: Option<String>,
     pub dimensions: Dimensions,
     pub file: FileMeta,
     pub format: &'static str,
@@ -56,13 +56,16 @@ impl std::fmt::Display for Meta {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "{}: dim={}x{} format={} anim={} dhash={:x}",
+            "{}: dim={}x{} format={} anim={}",
             self.file.path,
             self.dimensions.width,
             self.dimensions.height,
             self.format,
-            self.animation,
-            self.dhash as u64)
+            self.animation)?;
+        if let Some(ref dhash) = &self.dhash {
+            write!(f, " dhash={}", dhash)?;
+        }
+        Ok(())
     }
 }
 
@@ -102,7 +105,7 @@ fn from_file_without_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> A
 
     let meta = Meta {
         animation,
-        dhash: 0,
+        dhash: None,
         dimensions: Dimensions {
             height: dimensions.height,
             width: dimensions.width,
@@ -124,7 +127,7 @@ fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppR
     file.read_to_end(&mut content)?;
     let format = image::guess_format(&content)?;
     let image = image::load_from_memory_with_format(&content, format)?;
-    let dhash = dhash::get_dhash(&image);
+    let dhash = Some(format!("{:16x}" ,dhash::get_dhash(&image)));
 
     let meta = Meta {
         animation: meta.is_animation(),

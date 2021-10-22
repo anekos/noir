@@ -27,7 +27,9 @@ impl OutputFormat {
                 write!(w, " --meta width={}", meta.dimensions.width)?;
                 write!(w, " --meta height={}", meta.dimensions.width)?;
                 write!(w, " --meta format={}", meta.format)?;
-                write!(w, " --meta dhash={}", meta.dhash)?;
+                if let Some(ref dhash) = &meta.dhash {
+                    write!(w, " --meta dhash={}", dhash)?;
+                }
                 writeln!(w, " {}", escape(Cow::from(&meta.file.path)))?;
             },
             Json =>

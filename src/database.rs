@@ -214,7 +214,7 @@ impl Database {
             &meta.format,
             &meta.animation,
             &(meta.file.size as u32),
-            &(meta.dhash as i64) as &dyn ToSql,
+            &meta.dhash as &dyn ToSql,
             &meta.file.created.as_ref(),
             &meta.file.modified.as_ref(),
             &meta.file.accessed.as_ref(),
@@ -282,10 +282,7 @@ fn from_row(row: &Row) -> AppResult<Meta> {
 
     let result = Meta {
         animation: row.get(6)?,
-        dhash: {
-            let dhash: i64 = row.get(8)?;
-            dhash as u64
-        },
+        dhash: row.get(8)?,
         dimensions: Dimensions {
             width: row.get(1)?,
             height: row.get(2)?,

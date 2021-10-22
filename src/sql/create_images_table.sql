@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS images (
   format TEXT,
   animation BOOLEAN,
   file_size INTEGER,
-  dhash INTEGER,
+  dhash TEXT,
   created TEXT,
   modified TEXT,
   accessed TEXT
