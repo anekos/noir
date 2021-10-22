@@ -2,6 +2,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Sender};
 use std::time::Duration;
 use std::{thread, time};
@@ -32,13 +33,30 @@ impl Manager {
         let (tx, rx) = channel::<Job>();
 
         thread::spawn(move || {
-            while let Ok(job) = rx.recv() {
-                info!("Download: {:?}", job);
-                if let Err(err) = job.process(&db) {
-                    error!("Download error: {:?}", err);
-                } else {
-                    info!("Downloaded: {:?}", job.url);
+            let mut pool: VecDeque<Job> = VecDeque::new();
+            let mut errors: usize = 0;
+
+            loop {
+                let before = pool.len();
+
+                while let Ok(job) = rx.try_recv() {
+                    pool.push_back(job);
                 }
+
+                let after = pool.len();
+                info!("Download: Queue: {} (+{})", after, after - before);
+
+                if let Some(job) = pool.pop_front() {
+                    info!("Download: {:?}", job);
+                    if let Err(err) = job.process(&db) {
+                        errors += 1;
+                        error!("Download: NG: {:?}", err);
+                    } else {
+                        info!("Download: OK: {:?}", job.url);
+                    }
+                    info!("Download: Queue: count={}, errors={}", pool.len(), errors);
+                }
+
                 thread::sleep(time::Duration::from_secs(1));
             }
         });
