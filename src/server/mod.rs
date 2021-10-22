@@ -35,6 +35,11 @@ struct FileQuery {
 }
 
 #[derive(Deserialize)]
+struct FileTagsQuery {
+    path: String
+}
+
+#[derive(Deserialize)]
 struct SearchQuery {
     expression: String,
     record: Option<bool>
@@ -114,6 +119,13 @@ async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) 
     Ok(HttpResponse::Ok().content_type(content_type).body(content))
 }
 
+async fn on_file_tags(data: web::Data<Mutex<AppData>>, query: web::Query<FileTagsQuery>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock file tags");
+    let tags = data.db.tags_by_path(&query.path)?;
+    info!("on_file_tags: file={:?}, tags={:?}", query.path, tags);
+    Ok(HttpResponse::Ok().json(tags))
+}
+
 async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let history: Vec<SearchHistory> = data.db.search_history()?;
@@ -177,6 +189,7 @@ pub async fn start(
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
             .service(web::resource("/download").route(web::post().to(on_download)))
             .service(web::resource("/file").route(web::get().to(on_file)))
+            .service(web::resource("/file/tags").route(web::get().to(on_file_tags)))
             .service(web::resource("/history").route(web::get().to(on_history)))
             .service(web::resource("/search").route(web::post().to(on_search)))
             .service(web::resource("/tags").route(web::get().to(on_tags)))
