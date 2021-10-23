@@ -1,3 +1,4 @@
+use std::borrow::ToOwned;
 use std::sync::Arc;
 
 use rusqlite::functions::FunctionFlags;
@@ -16,12 +17,16 @@ pub fn add_distance_function(db: &Connection) -> Result<()> {
         FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
         move |ctx| {
             assert_eq!(ctx.len(), 2, "called with unexpected number of arguments");
-            let x = ctx.get_or_create_aux(0, |vr| -> Result<_, BoxError> { Ok(vr.as_str()?.to_owned()) })?;
-            let y = ctx.get_or_create_aux(1, |vr| -> Result<_, BoxError> { Ok(vr.as_str()?.to_owned()) })?;
-            let x = u64::from_str_radix(&*x, 16).unwrap_or(0);  // XXX Shouled be fixed??
-            let y = u64::from_str_radix(&*y, 16).unwrap_or(0);
-            let bits: u64 = x ^ y;
-            Ok(u64::count_ones(bits))
+            let x = ctx.get_or_create_aux(0, |vr| { vr.as_str().map(ToOwned::to_owned) });
+            let y = ctx.get_or_create_aux(1, |vr| { vr.as_str().map(ToOwned::to_owned) });
+            if let (Ok(x), Ok(y)) = (x, y) {
+                let x = u64::from_str_radix(&*x, 16).unwrap_or(0);  // XXX Shouled be fixed??
+                let y = u64::from_str_radix(&*y, 16).unwrap_or(0);
+                let bits: u64 = x ^ y;
+                Ok(u64::count_ones(bits))
+            } else {
+                Ok(u32::MAX)
+            }
         },
     )
 }
