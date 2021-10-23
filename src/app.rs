@@ -75,6 +75,10 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
     } else if let Some(matches) = matches.subcommand_matches("load-list") {
         let paths: Vec<&str> = matches.values_of("list-file").unwrap().collect();
         command_load_list(&db, &paths, extract_loader_config(matches))?;
+    } else if let Some(matches) = matches.subcommand_matches("meta") {
+        let path: &str = matches.value_of("path").unwrap();
+        let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
+        command_meta(path, format)?;
     } else if matches.is_present("path") {
         println!("{}", from_path(&db_file)?);
     } else if matches.is_present("reset") {
@@ -178,6 +182,15 @@ fn command_history(db: &Database) -> AppResultU {
     for entry in db.search_history()? {
         println!("{}", entry.expression);
     }
+    Ok(())
+}
+
+fn command_meta(path: &str, format: OutputFormat) -> AppResultU {
+    use crate::meta::Meta;
+    let meta = Meta::from_file(&path, true)?;
+    let output = stdout();
+    let mut output = output.lock();
+    format.write(&mut output, &meta)?;
     Ok(())
 }
 
