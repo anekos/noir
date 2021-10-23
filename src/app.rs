@@ -59,6 +59,11 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
     } else if let Some(matches) = matches.subcommand_matches("completions") {
         let shell = matches.value_of("shell").unwrap();
         args::build_cli().gen_completions_to("noir", shell.parse().unwrap(), &mut stdout());
+    } else if let Some(matches) = matches.subcommand_matches("compute") {
+        let wheres: Vec<&str> = matches.values_of("where").unwrap().collect();
+        let format = matches.value_of("format").map(OutputFormat::from_str).unwrap_or(Ok(OutputFormat::Simple))?;
+        let chunk_size: usize = matches.value_of("chunk").unwrap_or("10").parse()?;
+        command_compute(&db, aliases, &join(&wheres), format, chunk_size)?;
     } else if let Some(matches) = matches.subcommand_matches("expand") {
         let expression = matches.value_of("expression").unwrap();
         let full = matches.is_present("full");
@@ -155,6 +160,36 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
     Ok(())
 }
 
+fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, format: OutputFormat, chunk_size: usize) -> AppResultU {
+    let output = stdout();
+    let output = output.lock();
+
+    let mut output = BufWriter::new(output);
+
+    let expander = Expander::generate(db, &aliases)?;
+    let expanded_expression = expander.expand(expression);
+
+    let mut entries = vec![];
+
+    db.select(&expanded_expression, false, |meta, _vacuumed| {
+        if meta.dhash.is_none() {
+            entries.push(meta.clone());
+        }
+        Ok(())
+    })?;
+
+    for chunk in entries.chunks_mut(chunk_size) {
+        let _tx = db.transaction()?;
+        for mut meta in chunk.iter_mut() {
+            let image = image::open(&meta.file.path)?;
+            meta.dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
+            db.upsert(&meta)?;
+            format.write(&mut output, &meta)?;
+        }
+    }
+
+    db.add_search_history(expression)
+}
 fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
     let expander = Expander::generate(db, &aliases)?;
     let expanded = expander.expand(expression);
