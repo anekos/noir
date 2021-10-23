@@ -179,12 +179,16 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
     })?;
 
     for chunk in entries.chunks_mut(chunk_size) {
-        let _tx = db.transaction()?;
         for mut meta in chunk.iter_mut() {
             let image = image::open(&meta.file.path)?;
             meta.dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
-            db.upsert(&meta)?;
             format.write(&mut output, &meta)?;
+        }
+        {
+            let _tx = db.transaction()?;
+            for meta in chunk {
+                db.upsert(&meta)?;
+            }
         }
     }
 
