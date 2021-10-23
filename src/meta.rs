@@ -127,7 +127,7 @@ fn from_file_with_hashing<T: AsRef<Path>>(file: &T, file_meta: FileMeta) -> AppR
     file.read_to_end(&mut content)?;
     let format = image::guess_format(&content)?;
     let image = image::load_from_memory_with_format(&content, format)?;
-    let dhash = Some(format!("{:016x}" ,dhash::get_dhash(&image)));
+    let dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
 
     let meta = Meta {
         animation: meta.is_animation(),
