@@ -161,9 +161,12 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
 }
 
 fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, format: OutputFormat, chunk_size: usize) -> AppResultU {
+    let error = stderr();
+    let error = error.lock();
     let output = stdout();
     let output = output.lock();
 
+    let mut error = BufWriter::new(error);
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
@@ -179,14 +182,22 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
     })?;
 
     for chunk in entries.chunks_mut(chunk_size) {
+        let mut updated = vec![];
         for mut meta in chunk.iter_mut() {
-            let image = image::open(&meta.file.path)?;
-            meta.dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
-            format.write(&mut output, &meta)?;
+            match image::open(&meta.file.path) {
+                Ok(image) => {
+                    meta.dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
+                    format.write(&mut output, &meta)?;
+                    updated.push(meta);
+                }
+                Err(err) => {
+                    writeln!(error, "NG ({}): {}", err, meta.file.path)?;
+                }
+            }
         }
         {
             let _tx = db.transaction()?;
-            for meta in chunk {
+            for meta in updated {
                 db.upsert(&meta)?;
             }
         }
