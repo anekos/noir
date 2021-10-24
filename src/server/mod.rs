@@ -116,7 +116,12 @@ async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) 
     let mut file = File::open(&found.file.path)?;
     file.read_to_end(&mut content)?;
     let content_type = format!("image/{}", found.format);
-    Ok(HttpResponse::Ok().content_type(content_type).body(content))
+    Ok(
+        HttpResponse::Ok()
+        .header("Cache-Control", "public,immutable,max-age=3600")
+        .content_type(content_type)
+        .body(content)
+    )
 }
 
 async fn on_file_tags(data: web::Data<Mutex<AppData>>, query: web::Query<FileTagsQuery>) -> AppResult<HttpResponse> {
