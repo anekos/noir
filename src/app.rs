@@ -205,6 +205,7 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
 
     db.add_search_history(expression)
 }
+
 fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
     let expander = Expander::generate(db, &aliases)?;
     let expanded = expander.expand(expression);
