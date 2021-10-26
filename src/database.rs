@@ -174,6 +174,7 @@ impl Database {
         self.clear_tags(path)?;
         self.add_tags(path, tags)
     }
+
     pub fn tags(&self) -> AppResult<Vec<String>> {
         let mut stmt = self.connection.prepare("SELECT DISTINCT tag FROM tags ORDER BY length(tag)")?;
         let result: rusqlite::Result<Vec<String>> = stmt.query_map([], |row: &Row| row.get(0))?.collect();
