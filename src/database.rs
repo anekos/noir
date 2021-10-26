@@ -14,7 +14,7 @@ use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
 use crate::tag::Tag;
-use crate::defun::{add_distance_function, add_match_functions};
+use crate::defun::{add_distance_function, add_match_functions, add_recent_function};
 
 
 
@@ -121,6 +121,7 @@ impl Database {
         let connection = Connection::open(file.as_ref())?;
         add_distance_function(&connection)?;
         add_match_functions(&connection)?;
+        add_recent_function(&connection)?;
         create_table(&connection)?;
         Ok(Database { connection })
     }

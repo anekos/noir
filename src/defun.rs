@@ -1,6 +1,10 @@
 use std::borrow::ToOwned;
 use std::sync::Arc;
+use std::time::{Duration as StdDuration};
 
+use chrono::{Duration, Utc};
+use jackdauer::duration;
+use jackdauer;
 use rusqlite::functions::FunctionFlags;
 use rusqlite::{Connection, Error, Result};
 use wildmatch::WildMatch;
@@ -66,6 +70,24 @@ fn add_match_function(db: &Connection, name: &'static str, ignore_case: bool) ->
             };
 
             Ok(is_match)
+        },
+    )
+}
+
+pub fn add_recent_function(db: &Connection) -> Result<()> {
+    // https://docs.rs/rusqlite/0.26.0/rusqlite/functions/index.html
+    // recent(modified, "2 days")
+    db.create_scalar_function(
+        "recent",
+        1,
+        FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
+        move |ctx| {
+            assert_eq!(ctx.len(), 1, "called with unexpected number of arguments");
+            let x: String = ctx.get(0)?;
+            let x: StdDuration = duration(&x).map_err(|e| Error::UserFunctionError(e.into()))?;
+            let x: Duration = Duration::from_std(x).map_err(|e| Error::UserFunctionError(e.into()))?;
+            let from = Utc::now() - x;
+            Ok(from.to_string())
         },
     )
 }
