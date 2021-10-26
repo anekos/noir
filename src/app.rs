@@ -187,7 +187,7 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
             match image::open(&meta.file.path) {
                 Ok(image) => {
                     meta.dhash = Some(format!("{:016x}", dhash::get_dhash(&image)));
-                    format.write(&mut output, &meta)?;
+                    format.write(&mut output, meta)?;
                     updated.push(meta);
                 }
                 Err(err) => {
@@ -198,7 +198,7 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
         {
             let _tx = db.transaction()?;
             for meta in updated {
-                db.upsert(&meta)?;
+                db.upsert(meta)?;
             }
         }
     }

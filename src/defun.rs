@@ -4,7 +4,6 @@ use std::time::{Duration as StdDuration};
 
 use chrono::{Duration, Utc};
 use jackdauer::duration;
-use jackdauer;
 use rusqlite::functions::FunctionFlags;
 use rusqlite::{Connection, Error, Result};
 use wildmatch::WildMatch;

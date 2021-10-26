@@ -118,8 +118,7 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
 }
 
 fn write_record(db: &Database, job: &Job) -> AppResultU {
-    let mut config = loader::Config::default();
-    config.compute_dhash = true;
+    let config = loader::Config { compute_dhash: true, ..Default::default() };
     let mut loader = loader::Loader::new(db, config);
     loader.load_file(&job.to)?;
     let _tx = db.transaction()?;
