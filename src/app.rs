@@ -102,7 +102,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
-            command_tag_add(&db, path, &tags)?;
+            let source: Option<&str> = matches.value_of("source");
+            command_tag_add(&db, path, &tags, source)?;
         } else if let Some(matches) = matches.subcommand_matches("clear") {
             let path: &str = matches.value_of("path").unwrap();
             command_tag_clear(&db, path)?;
@@ -113,7 +114,8 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         } else if let Some(matches) = matches.subcommand_matches("set") {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
-            command_tag_set(&db, path, &tags)?;
+            let source: Option<&str> = matches.value_of("source");
+            command_tag_set(&db, path, &tags, source)?;
         } else if let Some(matches) = matches.subcommand_matches("show") {
             let path: Option<&str> = matches.value_of("path");
             command_tag_show(&db, path)?;
@@ -303,9 +305,9 @@ fn command_server<T: AsRef<Path>>(db: Database, db_file: &T, aliases: GlobalAlia
     Ok(())
 }
 
-fn command_tag_add(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+fn command_tag_add(db: &Database, path: &str, tags: &[&str], source: Option<&str>) -> AppResultU {
     let tags = to_tags(tags)?;
-    db.add_tags(path, tags.as_slice())
+    db.add_tags(path, tags.as_slice(), source)
 }
 
 fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
@@ -317,9 +319,9 @@ fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
     db.delete_tags(path, tags.as_slice())
 }
 
-fn command_tag_set(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+fn command_tag_set(db: &Database, path: &str, tags: &[&str], source: Option<&str>) -> AppResultU {
     let tags = to_tags(tags)?;
-    db.set_tags(path, tags.as_slice())
+    db.set_tags(path, tags.as_slice(), source)
 }
 
 fn command_tag_show(db: &Database, path: Option<&str>) -> AppResultU {

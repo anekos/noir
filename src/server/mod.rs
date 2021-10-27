@@ -53,6 +53,7 @@ struct QueryResult {
 
 #[derive(Deserialize)]
 struct DownloadRequest {
+    tag_source: Option<String>,
     tags: Option<Vec<String>>,
     to: String,
     url: String,
@@ -98,6 +99,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
             to,
             tags: request.tags.clone(),
             url: request.url.clone(),
+            tag_source: request.tag_source.clone(),
         };
         data.dl_manager.download(job);
 

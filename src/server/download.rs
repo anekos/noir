@@ -19,6 +19,7 @@ use crate::tag::Tag;
 #[derive(Debug)]
 pub struct Job {
     pub tags: Option<Vec<String>>,
+    pub tag_source: Option<String>,
     pub to: PathBuf,
     pub url: String,
 }
@@ -128,7 +129,7 @@ fn write_record(db: &Database, job: &Job) -> AppResultU {
             _tags.push(Tag::from_str(tag)?);
         }
         let to = job.to.to_str().unwrap();
-        db.add_tags(to, &_tags)?;
+        db.add_tags(to, &_tags, job.tag_source.as_deref())?;
     }
     Ok(())
 }

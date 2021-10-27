@@ -46,9 +46,10 @@ impl Database {
         Ok(())
     }
 
-    pub fn add_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
+    pub fn add_tags(&self, path: &str, tags: &[Tag], source: Option<&str>) -> AppResultU {
+        let source = source.unwrap_or("unknwon");
         for tag in tags {
-            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
+            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql, &source as &dyn ToSql];
             self.connection.execute(sql!(insert_tag), args)?;
         }
         Ok(())
@@ -170,9 +171,9 @@ impl Database {
         Ok(())
     }
 
-    pub fn set_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
+    pub fn set_tags(&self, path: &str, tags: &[Tag], source: Option<&str>) -> AppResultU {
         self.clear_tags(path)?;
-        self.add_tags(path, tags)
+        self.add_tags(path, tags, source)
     }
 
     pub fn tags(&self) -> AppResult<Vec<String>> {

@@ -98,7 +98,8 @@ impl<'a> Loader<'a> {
 
         let tags = self.generate_tags(&file)?;
         let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(it)).collect();
-        self.db.set_tags(from_path(&file)?, tags?.as_slice())?;
+        // FIXME Set tag_source
+        self.db.set_tags(from_path(&file)?, tags?.as_slice(), None)?;
         self.db.upsert(&meta)?;
 
         log::trace!("load_file.done");
