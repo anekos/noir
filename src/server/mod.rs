@@ -112,7 +112,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
         return Ok(HttpResponse::Ok().json(true))
     }
 
-    Err(AppError::Standard("`download-to` option is not given"))
+    Err(AppError::Standard("Server option `download-to` is not given"))
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
