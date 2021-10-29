@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Mutex;
 
 use actix_cors::Cors;
@@ -17,6 +18,7 @@ use crate::expander::Expander;
 use crate::global_alias::GlobalAliasTable;
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
+use crate::tag::Tag;
 
 pub mod download;
 pub mod util;
@@ -57,6 +59,13 @@ struct DownloadRequest {
     tags: Option<Vec<String>>,
     to: String,
     url: String,
+}
+
+#[derive(Deserialize)]
+struct SetTagRequest {
+    path: String,
+    tag_source: Option<String>,
+    tags: Vec<String>,
 }
 
 async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
@@ -103,7 +112,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
         };
         data.dl_manager.download(job);
 
-        return Ok(HttpResponse::Ok().json("ok"))
+        return Ok(HttpResponse::Ok().json(true))
     }
 
     Err(AppError::Standard("`download-to` option is not given"))
@@ -158,6 +167,16 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
     Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
 }
 
+async fn on_set_tags(data: web::Data<Mutex<AppData>>, request: web::Json<SetTagRequest>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock set_tag");
+    let mut tags = vec![];
+    for tag in &request.tags {
+        tags.push(Tag::from_str(&tag)?);
+    }
+    data.db.add_tags(&request.path, &tags, request.tag_source.as_deref())?;
+    Ok(HttpResponse::Ok().json(true))
+}
+
 async fn on_tags(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
@@ -199,7 +218,10 @@ pub async fn start(
             .service(web::resource("/file/tags").route(web::get().to(on_file_tags)))
             .service(web::resource("/history").route(web::get().to(on_history)))
             .service(web::resource("/search").route(web::post().to(on_search)))
-            .service(web::resource("/tags").route(web::get().to(on_tags)))
+            .service(
+                web::resource("/tags")
+                .route(web::get().to(on_tags))
+                .route(web::post().to(on_set_tags)))
             .service(Files::new("/", &root).index_file("index.html"))
     }).bind(("0.0.0.0", port))?.run().await
 }
