@@ -97,15 +97,15 @@ impl<'a> Loader<'a> {
             self.db.begin()?;
         }
 
-        let tags = self.generate_tags(&file)?;
-        let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(it)).collect();
-        // FIXME Set tag_source
-        let tag_source = self.config.tag_source.unwrap_or("unknown");
-        self.db.set_tags(from_path(&file)?, tags?.as_slice(), tag_source)?;
         self.db.upsert(&meta)?;
 
+        let tags = self.generate_tags(&file)?;
+        let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(it)).collect();
+        let tag_source = self.config.tag_source.unwrap_or("unknown");
+        self.db.set_tags(from_path(&file)?, tags?.as_slice(), tag_source)?;
+
         log::trace!("load_file.done");
-        println!("{}", meta);
+        log::info!("Meta: {}", meta);
 
         Ok(())
     }
