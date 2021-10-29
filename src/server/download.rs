@@ -127,8 +127,8 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
 fn write_record(db: &Database, job: &Job) -> AppResultU {
     let config = loader::Config { compute_dhash: true, ..Default::default() };
     let mut loader = loader::Loader::new(db, config);
-    loader.load_file(&job.to)?;
     let _tx = db.transaction()?;
+    loader.load_file(&job.to)?;
     if let Some(ref tags) = job.tags {
         let mut _tags = vec![];
         for tag in &tags.items {
