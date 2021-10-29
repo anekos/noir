@@ -102,19 +102,21 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         if let Some(matches) = matches.subcommand_matches("add") {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
-            let source: Option<&str> = matches.value_of("source");
+            let source: &str = matches.value_of("source").unwrap();
             command_tag_add(&db, path, &tags, source)?;
         } else if let Some(matches) = matches.subcommand_matches("clear") {
             let path: &str = matches.value_of("path").unwrap();
-            command_tag_clear(&db, path)?;
+            let source: &str = matches.value_of("source").unwrap();
+            command_tag_clear(&db, path, source)?;
         } else if let Some(matches) = matches.subcommand_matches("remove") {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
-            command_tag_remove(&db, path, &tags)?;
+            let source: &str = matches.value_of("source").unwrap();
+            command_tag_remove(&db, path, &tags, source)?;
         } else if let Some(matches) = matches.subcommand_matches("set") {
             let path: &str = matches.value_of("path").unwrap();
             let tags: Vec<&str> = matches.values_of("tag").map(Iterator::collect).unwrap_or_default();
-            let source: Option<&str> = matches.value_of("source");
+            let source: &str = matches.value_of("source").unwrap();
             command_tag_set(&db, path, &tags, source)?;
         } else if let Some(matches) = matches.subcommand_matches("show") {
             let path: Option<&str> = matches.value_of("path");
@@ -305,23 +307,27 @@ fn command_server<T: AsRef<Path>>(db: Database, db_file: &T, aliases: GlobalAlia
     Ok(())
 }
 
-fn command_tag_add(db: &Database, path: &str, tags: &[&str], source: Option<&str>) -> AppResultU {
+fn command_tag_add(db: &Database, path: &str, tags: &[&str], source: &str) -> AppResultU {
     let tags = to_tags(tags)?;
-    db.add_tags(path, tags.as_slice(), source)
+    db.add_tags(path, tags.as_slice(), source)?;
+    Ok(())
 }
 
-fn command_tag_clear(db: &Database, path: &str) -> AppResultU {
-    db.clear_tags(path)
+fn command_tag_clear(db: &Database, path: &str, source: &str) -> AppResultU {
+    db.clear_tags(path, source)?;
+    Ok(())
 }
 
-fn command_tag_remove(db: &Database, path: &str, tags: &[&str]) -> AppResultU {
+fn command_tag_remove(db: &Database, path: &str, tags: &[&str], source: &str) -> AppResultU {
     let tags = to_tags(tags)?;
-    db.delete_tags(path, tags.as_slice())
+    db.delete_tags(path, tags.as_slice(), source)?;
+    Ok(())
 }
 
-fn command_tag_set(db: &Database, path: &str, tags: &[&str], source: Option<&str>) -> AppResultU {
+fn command_tag_set(db: &Database, path: &str, tags: &[&str], source: &str) -> AppResultU {
     let tags = to_tags(tags)?;
-    db.set_tags(path, tags.as_slice(), source)
+    db.set_tags(path, tags.as_slice(), source)?;
+    Ok(())
 }
 
 fn command_tag_show(db: &Database, path: Option<&str>) -> AppResultU {
@@ -388,8 +394,9 @@ fn extract_loader_config<'a>(matches: &'a ArgMatches) -> Config<'a> {
     let dry_run = matches.is_present("dry-run");
     let skip_errors = matches.is_present("skip-errors");
     let tag_generator = matches.value_of("tag-script");
+    let tag_source = matches.value_of("tag-source");
     let update = matches.is_present("update");
-    Config { check_extension, compute_dhash, dry_run, skip_errors, tag_generator, update }
+    Config { check_extension, compute_dhash, dry_run, skip_errors, tag_generator, tag_source, update }
 }
 
 fn join(strings: &[&str]) -> String {

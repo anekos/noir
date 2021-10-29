@@ -40,6 +40,8 @@ pub enum AppError {
     InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
     Io(std::io::Error),
+    #[fail(display = "Path not found: {}", 0)]
+    PathNotFound(String),
     #[fail(display = "JSON Error: {}", 0)]
     SerdeJson(serde_json::Error),
     #[fail(display = "YAML Error: {}", 0)]

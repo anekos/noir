@@ -23,6 +23,7 @@ pub struct Config<'a> {
     pub dry_run: bool,
     pub skip_errors: bool,
     pub tag_generator: Option<&'a str>,
+    pub tag_source: Option<&'a str>,
     pub update: bool,
 }
 
@@ -99,7 +100,8 @@ impl<'a> Loader<'a> {
         let tags = self.generate_tags(&file)?;
         let tags: AppResult<Vec<Tag>> = tags.iter().map(|it| Tag::from_str(it)).collect();
         // FIXME Set tag_source
-        self.db.set_tags(from_path(&file)?, tags?.as_slice(), None)?;
+        let tag_source = self.config.tag_source.unwrap_or("unknown");
+        self.db.set_tags(from_path(&file)?, tags?.as_slice(), tag_source)?;
         self.db.upsert(&meta)?;
 
         log::trace!("load_file.done");

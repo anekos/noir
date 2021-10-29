@@ -9,6 +9,7 @@ use std::{thread, time};
 
 use curl::easy::{Easy as EasyCurl, WriteError};
 use log::{error, info};
+use serde::Deserialize;
 
 use crate::database::Database;
 use crate::errors::AppResultU;
@@ -18,10 +19,15 @@ use crate::tag::Tag;
 
 #[derive(Debug)]
 pub struct Job {
-    pub tags: Option<Vec<String>>,
-    pub tag_source: Option<String>,
+    pub tags: Option<Tags>,
     pub to: PathBuf,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Tags {
+    pub items: Vec<String>,
+    pub source: String
 }
 
 #[derive(Clone)]
@@ -125,11 +131,11 @@ fn write_record(db: &Database, job: &Job) -> AppResultU {
     let _tx = db.transaction()?;
     if let Some(ref tags) = job.tags {
         let mut _tags = vec![];
-        for tag in tags {
-            _tags.push(Tag::from_str(tag)?);
+        for tag in &tags.items {
+            _tags.push(Tag::from_str(&tag)?);
         }
         let to = job.to.to_str().unwrap();
-        db.add_tags(to, &_tags, job.tag_source.as_deref())?;
+        db.add_tags(to, &_tags, &tags.source)?;
     }
     Ok(())
 }

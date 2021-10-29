@@ -55,8 +55,7 @@ struct QueryResult {
 
 #[derive(Deserialize)]
 struct DownloadRequest {
-    tag_source: Option<String>,
-    tags: Option<Vec<String>>,
+    tags: Option<download::Tags>,
     to: String,
     url: String,
 }
@@ -64,8 +63,7 @@ struct DownloadRequest {
 #[derive(Deserialize)]
 struct SetTagRequest {
     path: String,
-    tag_source: Option<String>,
-    tags: Vec<String>,
+    tags: download::Tags,
 }
 
 async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
@@ -108,7 +106,6 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
             to,
             tags: request.tags.clone(),
             url: request.url.clone(),
-            tag_source: request.tag_source.clone(),
         };
         data.dl_manager.download(job);
 
@@ -170,10 +167,10 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
 async fn on_set_tags(data: web::Data<Mutex<AppData>>, request: web::Json<SetTagRequest>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock set_tag");
     let mut tags = vec![];
-    for tag in &request.tags {
+    for tag in &request.tags.items {
         tags.push(Tag::from_str(&tag)?);
     }
-    data.db.add_tags(&request.path, &tags, request.tag_source.as_deref())?;
+    data.db.add_tags(&request.path, &tags, &request.tags.source)?;
     Ok(HttpResponse::Ok().json(true))
 }
 

@@ -46,8 +46,8 @@ impl Database {
         Ok(())
     }
 
-    pub fn add_tags(&self, path: &str, tags: &[Tag], source: Option<&str>) -> AppResultU {
-        let source = source.unwrap_or("unknwon");
+    pub fn add_tags(&self, path: &str, tags: &[Tag], source: &str) -> AppResultU {
+        self.check_path_existence(path)?;
         for tag in tags {
             let args = &[&tag as &dyn ToSql, &path as &dyn ToSql, &source as &dyn ToSql];
             self.connection.execute(sql!(insert_tag), args)?;
@@ -77,8 +77,9 @@ impl Database {
         Ok(())
     }
 
-    pub fn clear_tags(&self, path: &str) -> AppResultU {
-        self.connection.execute(sql!(clear_tags), &[path])?;
+    pub fn clear_tags(&self, path: &str, source: &str) -> AppResultU {
+        self.check_path_existence(path)?;
+        self.connection.execute(sql!(clear_tags), &[path, &source])?;
         Ok(())
     }
 
@@ -99,9 +100,9 @@ impl Database {
         Ok(())
     }
 
-    pub fn delete_tags(&self, path: &str, tags: &[Tag]) -> AppResultU {
+    pub fn delete_tags(&self, path: &str, tags: &[Tag], source: &str) -> AppResultU {
         for tag in tags {
-            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql];
+            let args = &[&tag as &dyn ToSql, &path as &dyn ToSql, &source as &dyn ToSql];
             self.connection.execute(sql!(delete_tag), args)?;
         }
         Ok(())
@@ -171,9 +172,10 @@ impl Database {
         Ok(())
     }
 
-    pub fn set_tags(&self, path: &str, tags: &[Tag], source: Option<&str>) -> AppResultU {
-        self.clear_tags(path)?;
-        self.add_tags(path, tags, source)
+    pub fn set_tags(&self, path: &str, tags: &[Tag], source: &str) -> AppResultU {
+        self.clear_tags(path, source)?;
+        self.add_tags(path, tags, source)?;
+        Ok(())
     }
 
     pub fn tags(&self) -> AppResult<Vec<String>> {
@@ -256,6 +258,13 @@ impl Database {
             f(&it, current, is_target)?;
         }
         Ok(())
+    }
+
+    pub fn check_path_existence(&self, path: &str) -> AppResultU {
+        if self.path_exists(path)? {
+            return Ok(())
+        }
+        Err(AppError::PathNotFound(path.to_owned()))
     }
 }
 
