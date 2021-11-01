@@ -10,11 +10,11 @@ use rusqlite::types::ToSql;
 use rusqlite::{Connection, Row};
 
 use crate::alias::Alias;
+use crate::defun::{add_distance_function, add_match_functions, add_recent_function};
 use crate::errors::{AppError, AppResult, AppResultU, from_path};
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
 use crate::tag::Tag;
-use crate::defun::{add_distance_function, add_match_functions, add_recent_function};
 
 
 
@@ -34,7 +34,6 @@ macro_rules! sql {
         include_str!(concat!("sql/", stringify!($name), ".sql"))
     }
 }
-
 
 impl Database {
     pub fn add_search_history(&self, where_expression: &str) -> AppResultU {
@@ -271,7 +270,7 @@ impl Database {
 
 impl<'a> Drop for Tx<'a> {
     fn drop(&mut self) {
-        self.database.commit().expect("commit");
+        sql_retry!(self.database.commit()).expect("commit transaction by Drop");
     }
 }
 

@@ -1,3 +1,4 @@
+#[macro_use] pub mod database_macro;
 pub mod alias;
 pub mod app;
 pub mod args;

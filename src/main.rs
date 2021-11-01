@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use clap::ArgMatches;
 
+#[macro_use] pub mod database_macro;
 mod alias;
 mod app;
 mod args;
