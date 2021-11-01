@@ -16,7 +16,6 @@ pub struct Expander {
     alias_pattern: Regex,
     aliases: HashMap<String, Alias>,
     tags: Vec<String>,
-    tags_pattern: Regex,
 }
 
 
@@ -46,13 +45,10 @@ impl Expander {
         names.sort_by_key(|it| usize::MAX - it.len());
         let alias_pattern = word_pattern(&names, "");
 
-        let tags_pattern = word_pattern(&tags, "#");
-
         Self {
             alias_pattern,
             aliases,
             tags,
-            tags_pattern,
         }
     }
 
@@ -89,7 +85,8 @@ impl Expander {
         if self.tags.is_empty() {
             return expression.into();
         }
-        self.tags_pattern.replace_all(
+        let tags_pattern = Regex::new(r#"#([^()'"\s]+)"#).expect("Tag regexp");
+        tags_pattern.replace_all(
             expression,
             |captures: &Captures| {
                 let tag = captures.get(1).unwrap().as_str();
@@ -108,5 +105,5 @@ fn word_pattern<T: AsRef<str>>(words: &[T], prefix: &str) -> Regex {
         }
         result.push_str(&word);
     }
-    Regex::new(&format!("{}({})\\b", prefix, result)).unwrap()
+    Regex::new(&format!(r"{}({})\b", prefix, result)).unwrap()
 }

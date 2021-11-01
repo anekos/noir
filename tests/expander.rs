@@ -25,7 +25,7 @@ fn test_tag_expandable() {
     let e = Expander::new(
         hashmap!{ "hoge".to_owned() => Alias { expression: "fuga".to_owned(), recursive: false }},
         hashmap!{},
-        vec!["moge".to_owned()]);
+        vec!["moge".to_owned(), "bang!".to_owned()]);
 
     assert_eq!(
         e.expand("begin #moge end"),
@@ -33,6 +33,10 @@ fn test_tag_expandable() {
     assert_eq!(
         e.expand("begin #moge"),
         "begin (path in (SELECT path FROM tags WHERE tag = 'moge'))".to_owned());
+
+    assert_eq!(
+        e.expand("begin #bang! X"),
+        "begin (path in (SELECT path FROM tags WHERE tag = 'bang!')) X".to_owned());
 }
 
 #[test]
