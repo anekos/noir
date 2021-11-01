@@ -13,6 +13,7 @@ mod database;
 mod defun;
 mod errors;
 mod expander;
+mod expression;
 mod global_alias;
 mod image_format;
 mod loader;

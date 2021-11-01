@@ -1,10 +1,12 @@
 
 use std::ffi::OsStr;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 use actix_web::{
     error, dev::HttpResponseBuilder, http::header, http::StatusCode, HttpResponse,
 };
+use nom::{Err as NomErr};
 use failure::Fail;
 
 
@@ -40,6 +42,8 @@ pub enum AppError {
     InvalidTagFormat(String),
     #[fail(display = "IO error: {}", 0)]
     Io(std::io::Error),
+    #[fail(display = "Parsing error: {}", 0)]
+    Parsing(String),
     #[fail(display = "Path not found: {}", 0)]
     PathNotFound(String),
     #[fail(display = "JSON Error: {}", 0)]
@@ -100,6 +104,12 @@ pub fn wrap_with_path<T: AsRef<Path>, U>(path: &T, result: AppResult<U>) -> AppR
         AppError::WithPath(_, _) => it,
         _ => AppError::WithPath(Box::new(it), path.as_ref().to_path_buf()),
     })
+}
+
+impl<E: Debug> From<NomErr<E>> for AppError {
+    fn from(error: NomErr<E>) -> AppError {
+        AppError::Parsing(format!("{:?}", error))
+    }
 }
 
 impl From<std::io::Error> for AppError {

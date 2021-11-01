@@ -6,6 +6,7 @@ pub mod database;
 pub mod defun;
 pub mod errors;
 pub mod expander;
+pub mod expression;
 pub mod global_alias;
 pub mod image_format;
 pub mod loader;
