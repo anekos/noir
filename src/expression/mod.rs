@@ -4,7 +4,6 @@ pub enum Expression {
     Delimiter(String),
     NoirTag(String),
     StringLiteral(String),
-    Symbol(String),
     Term(String),
 }
 
