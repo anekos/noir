@@ -5,7 +5,7 @@ use log::info;
 
 use crate::alias::Alias;
 use crate::database::Database;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::global_alias::GlobalAliasTable;
 use crate::expression::{Expression, parser, string_literal};
 
@@ -18,7 +18,17 @@ pub struct Expander {
 
 impl Expander {
     pub fn expand(&self, expression: &str) -> AppResult<String> {
+        self.expand_n(expression, 0)
+    }
+
+    fn expand_n(&self, expression: &str, n: usize) -> AppResult<String> {
         use Expression::*;
+
+        if 30 < n {
+            return Err(AppError::Standard("Too deep recursively alias"));
+        }
+
+        info!("expanding({}): {:?}", n, expression);
 
         let (_rest, es) = parser::parse(expression)?;
 
@@ -26,7 +36,7 @@ impl Expander {
         for e in es {
             match e {
                 Any(c) => result.push(c),
-                Delimiter(ref s) | Symbol(ref s) => result.push_str(s),
+                Delimiter(ref s) => result.push_str(s),
                 NoirTag(ref tag) => {
                     result.push_str(&format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag));
                 },
@@ -34,7 +44,7 @@ impl Expander {
                 Term(ref s) => {
                     if let Some(alias) = self.aliases.get(s) {
                         if alias.recursive {
-                            let e = self.expand(&alias.expression)?;
+                            let e = self.expand_n(&alias.expression, n + 1)?;
                             result.push_str(&e);
                         } else {
                             result.push_str(&alias.expression);
