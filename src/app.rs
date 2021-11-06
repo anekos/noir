@@ -151,7 +151,7 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
     });
     if_let_some!(expressions = expressions, {
         let expander = Expander::generate(db, &aliases)?;
-        println!("{}", expander.expand(name));
+        println!("{}", expander.expand(name)?);
         Ok(())
     });
     let expression = join(&expressions);
@@ -174,7 +174,7 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
-    let expanded_expression = expander.expand(expression);
+    let expanded_expression = expander.expand(expression)?;
 
     let mut entries = vec![];
 
@@ -212,7 +212,7 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
 
 fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
     let expander = Expander::generate(db, &aliases)?;
-    let expanded = expander.expand(expression);
+    let expanded = expander.expand(expression)?;
     if full {
         println!("{}{}", crate::database::SELECT_PREFIX, expanded);
     } else {
@@ -287,7 +287,7 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
-    let expanded_expression = expander.expand(expression);
+    let expanded_expression = expander.expand(expression)?;
 
     db.select(&expanded_expression, vacuum, |meta, vacuumed| {
         if vacuumed {
