@@ -184,7 +184,7 @@ impl Database {
     }
 
     pub fn tags_by_path(&self, path: &str) -> AppResult<Vec<String>> {
-        let mut stmt = self.connection.prepare("SELECT tag FROM tags WHERE path = ?1")?;
+        let mut stmt = self.connection.prepare("SELECT DISTINCT(tag) FROM tags WHERE path = ?1")?;
         let result: rusqlite::Result<Vec<String>> = stmt.query_map(&[path], |row: &Row| row.get(0))?.collect();
         Ok(result?)
     }
