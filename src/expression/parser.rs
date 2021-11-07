@@ -48,7 +48,7 @@ fn term(input: &str) -> IResult<&str, E> {
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<E>> {
-    let p = alt((noir_tag, term, string_literal, delimiter, any));
+    let p = alt((noir_tag, string_literal, term, delimiter, any));
     many0(p)(input)
 }
 
@@ -118,6 +118,15 @@ mod tests {
             string_literal(r#"'A''B''''C'RR"#),
             Ok(("RR", S("A'B''C".to_owned())))
         );
+
+        assert_eq!(
+            string_literal(r#"'()'"#),
+            Ok(("", S("()".to_owned())))
+        );
+        assert_eq!(
+            string_literal(r#"'('')'"#),
+            Ok(("", S("(')".to_owned())))
+        );
     }
 
     #[test]
@@ -146,6 +155,35 @@ mod tests {
                 ("",
                  vec![
                      E::Delimiter("()".to_owned())
+                 ])));
+
+        assert_eq!(
+            parse(r#"(')'"#),
+            Ok(
+                ("",
+                 vec![
+                     E::Delimiter("(".to_owned()),
+                     E::StringLiteral(")".to_owned())
+                 ])));
+
+        assert_eq!(
+            parse(r#"(#tag)"#),
+            Ok(
+                ("",
+                 vec![
+                     E::Delimiter("(".to_owned()),
+                     E::NoirTag("tag".to_owned()),
+                     E::Delimiter(")".to_owned()),
+                 ])));
+
+        assert_eq!(
+            parse(r#"('#tag')"#),
+            Ok(
+                ("",
+                 vec![
+                     E::Delimiter("(".to_owned()),
+                     E::StringLiteral("#tag".to_owned()),
+                     E::Delimiter(")".to_owned()),
                  ])));
     }
 }
