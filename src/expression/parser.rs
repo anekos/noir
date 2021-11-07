@@ -95,6 +95,10 @@ mod tests {
         );
 
         assert_eq!(
+            string_literal(r#"''''"#),
+            Ok(("", S("'".to_owned())))
+        );
+        assert_eq!(
             string_literal(r#"'A'''"#),
             Ok(("", S("A'".to_owned())))
         );
