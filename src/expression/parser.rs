@@ -29,11 +29,6 @@ fn noir_tag(input: &str) -> IResult<&str, E> {
     Ok((rest, E::NoirTag(y.iter().collect())))
 }
 
-fn term(input: &str) -> IResult<&str, E> {
-    let (rest, x) = many1(none_of(DELIMITERS))(input)?;
-    Ok((rest, E::Term(x.iter().collect())))
-}
-
 fn string_literal(input: &str) -> IResult<&str, E> {
     let ch = alt((preceded(cchar('\''), cchar('\'')), none_of("'")));
 
@@ -45,6 +40,11 @@ fn string_literal(input: &str) -> IResult<&str, E> {
         tag("'")
     )(input)?;
     Ok((rest, E::StringLiteral(result.iter().collect())))
+}
+
+fn term(input: &str) -> IResult<&str, E> {
+    let (rest, x) = many1(none_of(DELIMITERS))(input)?;
+    Ok((rest, E::Term(x.iter().collect())))
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<E>> {
