@@ -38,8 +38,11 @@ impl Expander {
                 Any(c) => result.push(c),
                 Delimiter(ref s) => result.push_str(s),
                 NoirTag(ref tag) => {
-                    result.push_str(&format!("(path in (SELECT path FROM tags WHERE tag = '{}'))", tag));
+                    result.push_str(&format!("(path in (SELECT path FROM tags WHERE tag = {}))", string_literal(&tag)));
                 },
+                PathSegment(ref s) => {
+                    result.push_str(&format!("(path like {})", string_literal(&format!("%{}%", s))));
+                }
                 StringLiteral(ref s) => result.push_str(&string_literal(s)),
                 Term(ref s) => {
                     if let Some(alias) = self.aliases.get(s) {

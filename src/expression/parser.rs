@@ -5,7 +5,7 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{anychar, char as cchar, none_of, one_of};
 use nom::multi::{many0, many1};
-use nom::sequence::{preceded, terminated};
+use nom::sequence::{delimited, preceded, terminated};
 
 use super::{Expression as E};
 
@@ -29,6 +29,11 @@ fn noir_tag(input: &str) -> IResult<&str, E> {
     Ok((rest, E::NoirTag(y.iter().collect())))
 }
 
+fn path_segment(input: &str) -> IResult<&str, E> {
+    let (rest, x) = delimited(cchar('`'), many0(none_of("`")), cchar('`'))(input)?;
+    Ok((rest, E::PathSegment(x.iter().collect())))
+}
+
 fn string_literal(input: &str) -> IResult<&str, E> {
     let ch = alt((preceded(cchar('\''), cchar('\'')), none_of("'")));
 
@@ -48,7 +53,7 @@ fn term(input: &str) -> IResult<&str, E> {
 }
 
 pub fn parse(input: &str) -> IResult<&str, Vec<E>> {
-    let p = alt((noir_tag, string_literal, term, delimiter, any));
+    let p = alt((noir_tag, string_literal, path_segment, term, delimiter, any));
     many0(p)(input)
 }
 
@@ -78,6 +83,28 @@ mod tests {
         assert_eq!(
             noir_tag(r#"#foo"#),
             Ok(("", T("foo".to_owned())))
+        );
+    }
+
+    #[test]
+    fn test_path_segment() {
+        use E::{PathSegment as P};
+
+        assert_eq!(
+            path_segment(r#"`hoge`"#),
+            Ok(("", P("hoge".to_owned())))
+        );
+        assert_eq!(
+            path_segment(r#"`ho'ge`"#),
+            Ok(("", P("ho'ge".to_owned())))
+        );
+        assert_eq!(
+            path_segment(r#"`ho''ge`"#),
+            Ok(("", P("ho''ge".to_owned())))
+        );
+        assert_eq!(
+            path_segment(r#"`ho(g)e`"#),
+            Ok(("", P("ho(g)e".to_owned())))
         );
     }
 

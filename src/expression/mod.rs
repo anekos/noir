@@ -3,6 +3,7 @@ pub enum Expression {
     Any(char),
     Delimiter(String),
     NoirTag(String),
+    PathSegment(String),
     StringLiteral(String),
     Term(String),
 }
