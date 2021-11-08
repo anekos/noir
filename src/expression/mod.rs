@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq)]
+
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     Any(char),
     Delimiter(String),
@@ -7,6 +9,15 @@ pub enum Expression {
     StringLiteral(String),
     Term(String),
 }
+
+#[derive(Clone, Debug)]
+pub struct NoirQuery {
+    pub elements: Vec<Expression>
+}
+
+#[derive(Clone, Debug)]
+pub struct RawQuery(pub String);
+
 
 pub mod parser;
 

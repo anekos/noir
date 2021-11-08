@@ -7,7 +7,9 @@ use nom::character::complete::{anychar, char as cchar, none_of, one_of};
 use nom::multi::{many0, many1};
 use nom::sequence::{delimited, preceded, terminated};
 
-use super::{Expression as E};
+use crate::errors::AppResult;
+
+use super::{Expression as E, NoirQuery};
 
 
 const DELIMITERS: &'static str = "\t \r\n()<>=";
@@ -52,9 +54,10 @@ fn term(input: &str) -> IResult<&str, E> {
     Ok((rest, E::Term(x.iter().collect())))
 }
 
-pub fn parse(input: &str) -> IResult<&str, Vec<E>> {
+pub fn parse(input: &str) -> AppResult<NoirQuery> {
     let p = alt((noir_tag, string_literal, path_segment, term, delimiter, any));
-    many0(p)(input)
+    let (_rest, elements) = many0(p)(input)?;
+    Ok(NoirQuery { elements })
 }
 
 #[cfg(test)]

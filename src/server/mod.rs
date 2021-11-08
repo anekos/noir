@@ -148,11 +148,11 @@ async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
-    let expression = expander.expand(&query.expression)?;
+    let expression = expander.expand_str(&query.expression)?;
 
     let mut items: Vec<Meta> = vec![];
 
-    data.db.select(&expression, false, |meta, _vacuumed| {
+    data.db.select(&expression.0, false, |meta, _vacuumed| {
         items.push(meta.clone());
         Ok(())
     })?;
@@ -161,7 +161,7 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
         data.db.add_search_history(&query.expression)?;
     }
 
-    Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
+    Ok(HttpResponse::Ok().json(QueryResult { items, expression: expression.0 }))
 }
 
 async fn on_set_tags(data: web::Data<Mutex<AppData>>, request: web::Json<SetTagRequest>) -> AppResult<HttpResponse> {
