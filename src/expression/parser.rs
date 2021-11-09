@@ -175,45 +175,45 @@ mod tests {
             term(r#"cat and dog"#),
             Ok((" and dog", T("cat".to_owned())))
         );
+        assert_eq!(
+            term(r#"cat-dog "#),
+            Ok((" ", T("cat-dog".to_owned())))
+        );
     }
 
     #[test]
     fn test_parse() {
         assert_eq!(
-            parse(r#"()"#),
-            Ok(
-                ("",
-                 vec![
-                     E::Delimiter("()".to_owned())
-                 ])));
+            parse(r#"()"#).unwrap(),
+            NoirQuery {
+                elements: vec![
+                    E::Delimiter("()".to_owned())
+                ]});
 
         assert_eq!(
-            parse(r#"(')'"#),
-            Ok(
-                ("",
-                 vec![
-                     E::Delimiter("(".to_owned()),
-                     E::StringLiteral(")".to_owned())
-                 ])));
+            parse(r#"(')'"#).unwrap(),
+            NoirQuery {
+                elements: vec![
+                    E::Delimiter("(".to_owned()),
+                    E::StringLiteral(")".to_owned())
+                ]});
 
         assert_eq!(
-            parse(r#"(#tag)"#),
-            Ok(
-                ("",
-                 vec![
-                     E::Delimiter("(".to_owned()),
-                     E::NoirTag("tag".to_owned()),
-                     E::Delimiter(")".to_owned()),
-                 ])));
+            parse(r#"(#tag)"#).unwrap(),
+            NoirQuery {
+                elements: vec![
+                    E::Delimiter("(".to_owned()),
+                    E::NoirTag("tag".to_owned()),
+                    E::Delimiter(")".to_owned()),
+                ]});
 
         assert_eq!(
-            parse(r#"('#tag')"#),
-            Ok(
-                ("",
-                 vec![
-                     E::Delimiter("(".to_owned()),
-                     E::StringLiteral("#tag".to_owned()),
-                     E::Delimiter(")".to_owned()),
-                 ])));
+            parse(r#"('#tag')"#).unwrap(),
+            NoirQuery {
+                elements: vec![
+                    E::Delimiter("(".to_owned()),
+                    E::StringLiteral("#tag".to_owned()),
+                    E::Delimiter(")".to_owned()),
+                ]});
     }
 }

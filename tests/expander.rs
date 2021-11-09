@@ -3,7 +3,12 @@ use maplit::hashmap;
 
 use noir::alias::Alias;
 use noir::expander::Expander;
+use noir::expression::RawQuery;
 
+
+fn r(expression: &str) -> RawQuery {
+    RawQuery::new(expression.to_owned())
+}
 
 
 #[test]
@@ -13,11 +18,11 @@ fn test_expandable() {
         hashmap!{}
     );
 
-    assert_eq!(e.expand("begin hoge end").unwrap(), "begin fuga end".to_owned());
-    assert_eq!(e.expand("hoge end").unwrap(), "fuga end".to_owned());
-    assert_eq!(e.expand("begin hoge").unwrap(), "begin fuga".to_owned());
-    assert_eq!(e.expand("hoge").unwrap(), "fuga".to_owned());
-    assert_eq!(e.expand("<hoge>").unwrap(), "<fuga>".to_owned());
+    assert_eq!(e.expand_str("begin hoge end").unwrap(), r("begin fuga end"));
+    assert_eq!(e.expand_str("hoge end").unwrap(), r("fuga end"));
+    assert_eq!(e.expand_str("begin hoge").unwrap(), r("begin fuga"));
+    assert_eq!(e.expand_str("hoge").unwrap(), r("fuga"));
+    assert_eq!(e.expand_str("<hoge>").unwrap(), r("<fuga>"));
 }
 
 #[test]
@@ -28,15 +33,15 @@ fn test_tag_expandable() {
     );
 
     assert_eq!(
-        e.expand("begin #moge end").unwrap(),
-        "begin (path in (SELECT path FROM tags WHERE tag = 'moge')) end".to_owned());
+        e.expand_str("begin #moge end").unwrap(),
+        r("begin (path in (SELECT path FROM tags WHERE tag = 'moge')) end"));
     assert_eq!(
-        e.expand("begin #moge").unwrap(),
-        "begin (path in (SELECT path FROM tags WHERE tag = 'moge'))".to_owned());
+        e.expand_str("begin #moge").unwrap(),
+        r("begin (path in (SELECT path FROM tags WHERE tag = 'moge'))"));
 
     assert_eq!(
-        e.expand("begin #bang! X").unwrap(),
-        "begin (path in (SELECT path FROM tags WHERE tag = 'bang!')) X".to_owned());
+        e.expand_str("begin #bang! X").unwrap(),
+        r("begin (path in (SELECT path FROM tags WHERE tag = 'bang!')) X"));
 }
 
 #[test]
@@ -46,9 +51,9 @@ fn test_non_expandable() {
         hashmap!{},
     );
 
-    assert_eq!(e.expand("beginhogeend").unwrap(), "beginhogeend".to_owned());
-    assert_eq!(e.expand("a").unwrap(), "a".to_owned());
-    assert_eq!(e.expand("1").unwrap(), "1".to_owned());
+    assert_eq!(e.expand_str("beginhogeend").unwrap(), r("beginhogeend"));
+    assert_eq!(e.expand_str("a").unwrap(), r("a"));
+    assert_eq!(e.expand_str("1").unwrap(), r("1"));
 }
 
 #[test]
@@ -56,8 +61,8 @@ fn test_tag_non_expandable() {
     let e = Expander::new(hashmap!{}, hashmap!{});
 
     assert_eq!(
-        e.expand("begin #hoge end").unwrap(),
-        "begin (path in (SELECT path FROM tags WHERE tag = 'hoge')) end".to_owned());
+        e.expand_str("begin #hoge end").unwrap(),
+        r("begin (path in (SELECT path FROM tags WHERE tag = 'hoge')) end"));
 }
 
 #[test]
@@ -71,8 +76,8 @@ fn test_recursive() {
     );
 
     assert_eq!(
-        e.expand("begin hoge end").unwrap(),
-        "begin meow end".to_owned());
+        e.expand_str("begin hoge end").unwrap(),
+        r("begin meow end"));
 }
 
 #[test]
@@ -86,6 +91,6 @@ fn test_nonrecursive() {
     );
 
     assert_eq!(
-        e.expand("begin hoge end").unwrap(),
-        "begin fuga end".to_owned());
+        e.expand_str("begin hoge end").unwrap(),
+        r("begin fuga end"));
 }

@@ -10,12 +10,12 @@ pub enum Expression {
     Term(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NoirQuery {
     pub elements: Vec<Expression>
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RawQuery(String);
 
 
