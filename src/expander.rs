@@ -49,8 +49,8 @@ impl Expander {
                 Term(ref s) => {
                     if let Some(alias) = self.aliases.get(s) {
                         if alias.recursive {
-                            let alias = Term(alias.expression.clone());
-                            let e = self.expand_n(&NoirQuery { elements: vec![alias] }, n + 1)?;
+                            let alias_query = parser::parse(&alias.expression)?;
+                            let e = self.expand_n(&alias_query, n + 1)?;
                             result.push_str(e.as_ref());
                         } else {
                             result.push_str(&alias.expression);
@@ -62,7 +62,7 @@ impl Expander {
             }
 
         }
-        info!("expand: {:?} → {:?}", query, result);
+        info!("expanded: {:?}", result);
         Ok(RawQuery::new(result))
     }
 
