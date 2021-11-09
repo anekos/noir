@@ -16,10 +16,31 @@ pub struct NoirQuery {
 }
 
 #[derive(Clone, Debug)]
-pub struct RawQuery(pub String);
+pub struct RawQuery(String);
 
 
+pub mod modifier;
 pub mod parser;
+
+
+impl RawQuery {
+    pub fn new(q: String) -> Self {
+        RawQuery(q)
+    }
+}
+
+impl ToString for RawQuery {
+    fn to_string(&self) -> String {
+        self.0.to_owned()
+    }
+}
+
+impl AsRef<str> for RawQuery {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 
 
 pub fn string_literal(s: &str) -> String {

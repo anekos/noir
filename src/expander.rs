@@ -51,7 +51,7 @@ impl Expander {
                         if alias.recursive {
                             let alias = Term(alias.expression.clone());
                             let e = self.expand_n(&NoirQuery { elements: vec![alias] }, n + 1)?;
-                            result.push_str(&e.0);
+                            result.push_str(e.as_ref());
                         } else {
                             result.push_str(&alias.expression);
                         }
@@ -63,7 +63,7 @@ impl Expander {
 
         }
         info!("expand: {:?} → {:?}", query, result);
-        Ok(RawQuery(result))
+        Ok(RawQuery::new(result))
     }
 
     pub fn generate(database: &Database, global_alias_table: &GlobalAliasTable) -> AppResult<Self> {

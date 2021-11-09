@@ -152,7 +152,7 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
 
     let mut items: Vec<Meta> = vec![];
 
-    data.db.select(&expression.0, false, |meta, _vacuumed| {
+    data.db.select(expression.as_ref(), false, |meta, _vacuumed| {
         items.push(meta.clone());
         Ok(())
     })?;
@@ -161,7 +161,7 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
         data.db.add_search_history(&query.expression)?;
     }
 
-    Ok(HttpResponse::Ok().json(QueryResult { items, expression: expression.0 }))
+    Ok(HttpResponse::Ok().json(QueryResult { items, expression: expression.to_string() }))
 }
 
 async fn on_set_tags(data: web::Data<Mutex<AppData>>, request: web::Json<SetTagRequest>) -> AppResult<HttpResponse> {
