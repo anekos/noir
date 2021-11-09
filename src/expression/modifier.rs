@@ -5,20 +5,24 @@ use super::{Expression as E, NoirQuery};
 
 
 
-pub fn replace_tag(query: NoirQuery, tag: &str) -> AppResult<NoirQuery> {
+pub fn replace_tag(query: NoirQuery, tag: &str) -> AppResult<Option<NoirQuery>> {
     let mut elements: Vec<E> = vec![];
-    let mut at_first = true;
+    let mut replaced = false;
 
     for e in query.elements {
-        if at_first {
+        if !replaced {
             if let E::NoirTag(_) = e {
                 elements.push(E::NoirTag(tag.to_owned()));
-                at_first = false;
+                replaced = true;
                 continue;
             }
         }
         elements.push(e);
     }
 
-    Ok(NoirQuery { elements })
+    if replaced {
+        return Ok(Some(NoirQuery { elements }))
+    }
+
+    Ok(None)
 }

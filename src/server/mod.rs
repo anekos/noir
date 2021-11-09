@@ -126,7 +126,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
 async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> AppResult<HttpResponse> {
     let q = parse(&query.expression)?;
     let expression = replace_tag(q, &query.tag)?;
-    Ok(HttpResponse::Ok().json(expression.to_string()))
+    Ok(HttpResponse::Ok().json(expression.map(|it| it.to_string())))
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
