@@ -15,6 +15,8 @@ use crate::alias::Alias;
 use crate::database::Database;
 use crate::errors::{AppError, AppResult};
 use crate::expander::Expander;
+use crate::expression::modifier::replace_tag;
+use crate::expression::parser::parse;
 use crate::global_alias::GlobalAliasTable;
 use crate::meta::Meta;
 use crate::search_history::SearchHistory;
@@ -58,6 +60,12 @@ struct DownloadRequest {
     tags: Option<download::Tags>,
     to: String,
     url: String,
+}
+
+#[derive(Deserialize)]
+struct ExpressionReplaceTag {
+    expression: String,
+    tag: String
 }
 
 #[derive(Deserialize)]
@@ -115,6 +123,12 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
     Err(AppError::Standard("Server option `download-to` is not given"))
 }
 
+async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> AppResult<HttpResponse> {
+    let q = parse(&query.expression)?;
+    let expression = replace_tag(q, &query.tag)?;
+    Ok(HttpResponse::Ok().json(expression.map(|it| it.to_string())))
+}
+
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock file");
     let found = data.db.get(&query.path)?;
@@ -148,11 +162,11 @@ async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock search");
     let expander = Expander::generate(&data.db, &data.aliases)?;
-    let expression = expander.expand(&query.expression)?;
+    let expression = expander.expand_str(&query.expression)?;
 
     let mut items: Vec<Meta> = vec![];
 
-    data.db.select(&expression, false, |meta, _vacuumed| {
+    data.db.select(expression.as_ref(), false, |meta, _vacuumed| {
         items.push(meta.clone());
         Ok(())
     })?;
@@ -161,7 +175,7 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
         data.db.add_search_history(&query.expression)?;
     }
 
-    Ok(HttpResponse::Ok().json(QueryResult { items, expression }))
+    Ok(HttpResponse::Ok().json(QueryResult { items, expression: expression.to_string() }))
 }
 
 async fn on_set_tags(data: web::Data<Mutex<AppData>>, request: web::Json<SetTagRequest>) -> AppResult<HttpResponse> {
@@ -214,6 +228,7 @@ pub async fn start(
             .service(web::resource("/file/tags").route(web::get().to(on_file_tags)))
             .service(web::resource("/history").route(web::get().to(on_history)))
             .service(web::resource("/search").route(web::post().to(on_search)))
+            .service(web::resource("/expression/replace_tag").route(web::post().to(on_expression_replace_tag)))
             .service(
                 web::resource("/tags")
                 .route(web::get().to(on_tags))

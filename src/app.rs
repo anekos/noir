@@ -151,7 +151,7 @@ fn command_alias(db: &Database, mut aliases: GlobalAliasTable, name: Option<&str
     });
     if_let_some!(expressions = expressions, {
         let expander = Expander::generate(db, &aliases)?;
-        println!("{}", expander.expand(name)?);
+        println!("{}", expander.expand_str(name)?.as_ref());
         Ok(())
     });
     let expression = join(&expressions);
@@ -174,11 +174,11 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
-    let expanded_expression = expander.expand(expression)?;
+    let expanded_expression = expander.expand_str(expression)?;
 
     let mut entries = vec![];
 
-    db.select(&expanded_expression, false, |meta, _vacuumed| {
+    db.select(expanded_expression.as_ref(), false, |meta, _vacuumed| {
         if meta.dhash.is_none() {
             entries.push(meta.clone());
         }
@@ -212,11 +212,11 @@ fn command_compute(db: &Database, aliases: GlobalAliasTable, expression: &str, f
 
 fn command_expand(db: &Database, aliases: GlobalAliasTable, expression: &str, full: bool) -> AppResultU {
     let expander = Expander::generate(db, &aliases)?;
-    let expanded = expander.expand(expression)?;
+    let expanded = expander.expand_str(expression)?;
     if full {
-        println!("{}{}", crate::database::SELECT_PREFIX, expanded);
+        println!("{}{}", crate::database::SELECT_PREFIX, expanded.as_ref());
     } else {
-        println!("{}", expanded);
+        println!("{}", expanded.as_ref());
     }
     Ok(())
 }
@@ -287,9 +287,9 @@ fn command_search(db: &Database, aliases: GlobalAliasTable, expression: &str, va
     let mut output = BufWriter::new(output);
 
     let expander = Expander::generate(db, &aliases)?;
-    let expanded_expression = expander.expand(expression)?;
+    let expanded_expression = expander.expand_str(expression)?;
 
-    db.select(&expanded_expression, vacuum, |meta, vacuumed| {
+    db.select(expanded_expression.as_ref(), vacuum, |meta, vacuumed| {
         if vacuumed {
             writeln!(error, "Vacuumed: {}", meta.file.path)?;
         } else {

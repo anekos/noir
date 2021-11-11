@@ -7,7 +7,7 @@ use crate::alias::Alias;
 use crate::database::Database;
 use crate::errors::{AppError, AppResult};
 use crate::global_alias::GlobalAliasTable;
-use crate::expression::{Expression, parser, string_literal};
+use crate::expression::{NoirQuery, RawQuery, Expression, parser, string_literal};
 
 
 
@@ -17,25 +17,27 @@ pub struct Expander {
 
 
 impl Expander {
-    pub fn expand(&self, expression: &str) -> AppResult<String> {
-        self.expand_n(expression, 0)
+    pub fn expand_str(&self, expression: &str) -> AppResult<RawQuery> {
+        let query = parser::parse(expression)?;
+        self.expand(&query)
+    }
+    pub fn expand(&self, query: &NoirQuery) -> AppResult<RawQuery> {
+        self.expand_n(query, 0)
     }
 
-    fn expand_n(&self, expression: &str, n: usize) -> AppResult<String> {
+    fn expand_n(&self, query: &NoirQuery, n: usize) -> AppResult<RawQuery> {
         use Expression::*;
 
         if 30 < n {
             return Err(AppError::Standard("Too deep recursively alias"));
         }
 
-        info!("expanding({}): {:?}", n, expression);
-
-        let (_rest, es) = parser::parse(expression)?;
+        info!("expanding({}): {:?}", n, query);
 
         let mut result = "".to_owned();
-        for e in es {
+        for e in &query.elements {
             match e {
-                Any(c) => result.push(c),
+                Any(c) => result.push(*c),
                 Delimiter(ref s) => result.push_str(s),
                 NoirTag(ref tag) => {
                     result.push_str(&format!("(path in (SELECT path FROM tags WHERE tag = {}))", string_literal(&tag)));
@@ -47,8 +49,9 @@ impl Expander {
                 Term(ref s) => {
                     if let Some(alias) = self.aliases.get(s) {
                         if alias.recursive {
-                            let e = self.expand_n(&alias.expression, n + 1)?;
-                            result.push_str(&e);
+                            let alias_query = parser::parse(&alias.expression)?;
+                            let e = self.expand_n(&alias_query, n + 1)?;
+                            result.push_str(e.as_ref());
                         } else {
                             result.push_str(&alias.expression);
                         }
@@ -59,8 +62,8 @@ impl Expander {
             }
 
         }
-        info!("expand: {:?} → {:?}", expression, result);
-        Ok(result)
+        info!("expanded: {:?}", result);
+        Ok(RawQuery::new(result))
     }
 
     pub fn generate(database: &Database, global_alias_table: &GlobalAliasTable) -> AppResult<Self> {
