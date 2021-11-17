@@ -9,6 +9,7 @@ use actix_files::Files;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpResponse, HttpServer, http, web};
 use log::info;
+use logging_timer::{timer, executing, Level};
 use serde::{Deserialize, Serialize};
 
 use crate::alias::Alias;
@@ -130,13 +131,19 @@ async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> Ap
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
+    let timer = timer!(Level::Info; "on_file_tags");
+
     let data = data.lock().expect("lock file");
+
+    executing!(timer, "Get meta from database: path={}", query.path);
     let found = data.db.get(&query.path)?;
-    info!("on_file: file={:?}", query.path);
     let found = found.ok_or(AppError::Void)?;
+
     let mut content: Vec<u8> = vec![];
+    executing!(timer, "Read file: path={}", query.path);
     let mut file = File::open(&found.file.path)?;
     file.read_to_end(&mut content)?;
+
     let content_type = format!("image/{}", found.format);
     Ok(
         HttpResponse::Ok()
@@ -147,6 +154,7 @@ async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) 
 }
 
 async fn on_file_tags(data: web::Data<Mutex<AppData>>, query: web::Query<FileTagsQuery>) -> AppResult<HttpResponse> {
+    let _timer = timer!(Level::Info; "on_file_tags");
     let data = data.lock().expect("lock file tags");
     let tags = data.db.tags_by_path(&query.path)?;
     info!("on_file_tags: file={:?}, tags={:?}", query.path, tags);
@@ -160,17 +168,22 @@ async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
 }
 
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
+    let timer = timer!(Level::Info; "on_search");
+
     let data = data.lock().expect("lock search");
+
+    executing!(timer, "Expand: {}", &query.expression);
     let expander = Expander::generate(&data.db, &data.aliases)?;
     let expression = expander.expand_str(&query.expression)?;
 
+    executing!(timer, "Search from database: {}", &query.expression);
     let mut items: Vec<Meta> = vec![];
-
     data.db.select(expression.as_ref(), false, |meta, _vacuumed| {
         items.push(meta.clone());
         Ok(())
     })?;
 
+    executing!(timer, "Add history: {}", &query.expression);
     if query.record.unwrap_or(false) {
         data.db.add_search_history(&query.expression)?;
     }

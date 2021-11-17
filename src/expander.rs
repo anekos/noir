@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 
-use log::info;
+use log::debug;
 
 use crate::alias::Alias;
 use crate::database::Database;
@@ -32,7 +32,7 @@ impl Expander {
             return Err(AppError::Standard("Too deep recursively alias"));
         }
 
-        info!("expanding({}): {:?}", n, query);
+        debug!("expanding({}): {:?}", n, query);
 
         let mut result = "".to_owned();
         for e in &query.elements {
@@ -62,7 +62,7 @@ impl Expander {
             }
 
         }
-        info!("expanded: {:?}", result);
+        debug!("expanded: {:?}", result);
         Ok(RawQuery::new(result))
     }
 
