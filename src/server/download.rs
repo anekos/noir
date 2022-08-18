@@ -67,7 +67,7 @@ impl Manager {
                     info!("Download: Queue: count={}, errors={}", pool.len(), errors);
                 }
 
-                thread::sleep(time::Duration::from_secs(1));
+                thread::sleep(time::Duration::from_secs(3));
             }
         });
 
