@@ -101,7 +101,7 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
 
     let mut curl = EasyCurl::new();
 
-    curl.timeout(Duration::from_secs(60))?;
+    curl.timeout(Duration::from_secs(60 * 5))?;
     curl.connect_timeout(Duration::from_secs(10))?;
     curl.low_speed_time(Duration::from_secs(30))?;
     curl.low_speed_limit(1024)?;
