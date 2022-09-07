@@ -105,6 +105,7 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
     curl.connect_timeout(Duration::from_secs(10))?;
     curl.low_speed_time(Duration::from_secs(30))?;
     curl.low_speed_limit(1024)?;
+    curl.http_version(curl::easy::HttpVersion::V11)?;
 
     curl.url(url)?;
 
