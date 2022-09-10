@@ -9,7 +9,7 @@ use std::{thread, time};
 
 use curl::easy::{Easy as EasyCurl, WriteError};
 use log::{error, info};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::database::Database;
 use crate::errors::AppResultU;
@@ -17,14 +17,14 @@ use crate::loader;
 use crate::tag::Tag;
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Job {
     pub tags: Option<Tags>,
     pub to: PathBuf,
     pub url: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Tags {
     pub items: Vec<String>,
     pub source: String
@@ -61,6 +61,11 @@ impl Manager {
                     if let Err(err) = job.process(&db) {
                         errors += 1;
                         error!("Download: NG: {:?}", err);
+                        if let Ok(json) = serde_json::to_string(&job) {
+                            error!("NG-JOB: {}", json);
+                        } else {
+                            error!("NG-JOB: {:?}", job);
+                        }
                     } else {
                         info!("Download: OK: {:?}", job.url);
                     }
