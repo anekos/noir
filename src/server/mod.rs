@@ -116,6 +116,11 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
             tags: request.tags.clone(),
             url: request.url.clone(),
         };
+
+        let job_json = serde_json::to_string(&job)?;
+        let _tx = data.db.transaction()?;
+        data.db.queue(&request.url, &job_json)?;
+
         data.dl_manager.download(job);
 
         return Ok(HttpResponse::Ok().json(true))

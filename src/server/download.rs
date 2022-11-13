@@ -86,7 +86,6 @@ impl Manager {
 
 impl Job {
     fn process(&self, db: &Database) -> AppResultU {
-        queue(db, &self)?;
         download(&self.url, &self.to)?;
         write_record(db, self)?;
         dequeue(db, &self.url)?;
@@ -129,12 +128,6 @@ fn download<T: AsRef<Path>>(url: &str, download_to: T) -> AppResultU {
     let transfer = curl.transfer();
     transfer.perform()?;
 
-    Ok(())
-}
-
-fn queue(db: &Database, job: &Job) -> AppResultU {
-    let json = serde_json::to_string(job)?;
-    db.queue(&job.url, &json)?;
     Ok(())
 }
 
