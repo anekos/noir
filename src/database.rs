@@ -54,6 +54,18 @@ impl Database {
         Ok(())
     }
 
+    pub fn dequeue(&self, url: &str) -> AppResultU {
+        self.connection.execute("DELETE FROM queue WHERE url = ?1", &[url])?;
+        Ok(())
+    }
+
+    pub fn queue(&self, url: &str, job: &str) -> AppResultU {
+        let now: DateTime<Utc> = Utc::now();
+        let args = &[&url as &dyn ToSql, &job as &dyn ToSql, &now as &dyn ToSql];
+        self.connection.execute(sql!(insert_queue), args)?;
+        Ok(())
+    }
+
     pub fn aliases(&self) -> AppResult<HashMap<String, Alias>> {
         let mut stmt = self.connection.prepare("SELECT * FROM aliases")?;
         let result: rusqlite::Result<HashMap<String, Alias>> = stmt.query_map(
@@ -285,6 +297,7 @@ fn create_table(conn: &Connection) -> AppResultU {
     create(conn, sql!(create_tags_index))?;
     create(conn, sql!(create_aliases_table))?;
     create(conn, sql!(create_search_history_table))?;
+    create(conn, sql!(create_queue_table))?;
     Ok(())
 }
 
