@@ -142,7 +142,7 @@ async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> Ap
 
 async fn on_favorite(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock file");
-    let tags = [Tag::from_str("favorite")?];
+    let tags = [Tag::from_str("noir-favorite")?];
     data.db.add_tags(&favorite.path, &tags, "noir")?;
     Ok(HttpResponse::Ok().body("OK"))
 }
