@@ -40,6 +40,11 @@ struct FileQuery {
 }
 
 #[derive(Deserialize)]
+struct Favorite {
+    path: String
+}
+
+#[derive(Deserialize)]
 struct FileTagsQuery {
     path: String
 }
@@ -133,6 +138,13 @@ async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> Ap
     let q = parse(&query.expression)?;
     let expression = replace_tag(q, &query.tag)?;
     Ok(HttpResponse::Ok().json(expression.map(|it| it.to_string())))
+}
+
+async fn on_favorite(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock file");
+    let tags = [Tag::from_str("favorite")?];
+    data.db.add_tags(&favorite.path, &tags, "noir")?;
+    Ok(HttpResponse::Ok().body("OK"))
 }
 
 async fn on_file(data: web::Data<Mutex<AppData>>, query: web::Query<FileQuery>) -> AppResult<HttpResponse> {
@@ -242,6 +254,7 @@ pub async fn start(
                 .route(web::post().to(on_alias_update)))
             .service(web::resource("/aliases").route(web::get().to(on_aliases)))
             .service(web::resource("/download").route(web::post().to(on_download)))
+            .service(web::resource("/favorite").route(web::post().to(on_favorite)))
             .service(web::resource("/file").route(web::get().to(on_file)))
             .service(web::resource("/file/tags").route(web::get().to(on_file_tags)))
             .service(web::resource("/history").route(web::get().to(on_history)))
