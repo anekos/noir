@@ -7,16 +7,14 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use crate::alias::Alias;
-use crate::database::Database;
 use crate::errors::{AppResult, AppResultU};
 
 
 
-#[derive(Debug, Default, Clone)]
+#[derive(Clone, Default)]
 pub struct GlobalAliasTable {
     path: PathBuf,
     table: HashMap<String, Alias>,
-    tags: Vec<String>,
 }
 
 pub struct Iter {
@@ -43,14 +41,13 @@ impl GlobalAliasTable {
         result
     }
 
-    pub fn open<T: AsRef<Path>>(path: &T, db: &Database) -> AppResult<Self> {
+    pub fn open<T: AsRef<Path>>(path: &T) -> AppResult<Self> {
         let path = path.as_ref().to_path_buf();
 
         if !path.is_file() {
             return Ok(Self {
                 path,
                 table: HashMap::default(),
-                tags: db.tags()?,
             });
         }
 
@@ -60,7 +57,6 @@ impl GlobalAliasTable {
         Ok(Self {
             path,
             table: serde_yaml::from_str(&source)?,
-            tags: db.tags()?,
         })
     }
 

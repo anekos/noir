@@ -48,7 +48,7 @@ pub fn run(matches: &ArgMatches) -> AppResultU {
         }
     };
     let db = Database::open(&db_file)?;
-    let mut aliases = GlobalAliasTable::open(&aliases_file, &db)?;
+    let mut aliases = GlobalAliasTable::open(&aliases_file)?;
 
     if let Some(matches) = matches.subcommand_matches("alias") {
         let name = matches.value_of("name");
