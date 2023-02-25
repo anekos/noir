@@ -138,6 +138,8 @@ async fn on_dislike(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favori
     let data = data.lock().expect("lock file");
     let tags = [Tag::from_str("dislike")?];
     data.db.add_tags(&favorite.path, &tags, "noir")?;
+    let tags = [Tag::from_str("like")?];
+    data.db.delete_tags(&favorite.path, &tags, "noir")?;
     Ok(HttpResponse::Ok().body("OK"))
 }
 
@@ -188,6 +190,8 @@ async fn on_like(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>
     let data = data.lock().expect("lock file");
     let tags = [Tag::from_str("like")?];
     data.db.add_tags(&favorite.path, &tags, "noir")?;
+    let tags = [Tag::from_str("dislike")?];
+    data.db.delete_tags(&favorite.path, &tags, "noir")?;
     Ok(HttpResponse::Ok().body("OK"))
 }
 
