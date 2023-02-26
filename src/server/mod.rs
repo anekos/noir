@@ -93,7 +93,7 @@ fn update_favorite(
     data.db.delete_tags(&favorite.path, &tags, "noir")?;
 
     if let Some(toggle) = favorite.toggle {
-        if toggle && data.db.tag_exists(tag_to_add)? {
+        if toggle && data.db.tag_exists(&favorite.path, tag_to_add)? {
             let tags = [Tag::from_str(tag_to_add)?];
             data.db.delete_tags(&favorite.path, &tags, "noir")?;
             return Ok(HttpResponse::Ok().json(false))

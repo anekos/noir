@@ -189,9 +189,9 @@ impl Database {
         Ok(())
     }
 
-    pub fn tag_exists(&self, tag: &str) -> AppResult<bool> {
-        let mut stmt = self.connection.prepare("SELECT 1 FROM tags WHERE tag = ?;")?;
-        Ok(stmt.exists(&[&tag as &dyn ToSql])?)
+    pub fn tag_exists(&self, path: &str, tag: &str) -> AppResult<bool> {
+        let mut stmt = self.connection.prepare("SELECT 1 FROM tags WHERE path = ? AND tag = ?;")?;
+        Ok(stmt.exists(&[&path as &dyn ToSql, &tag as &dyn ToSql])?)
     }
 
     pub fn tags(&self) -> AppResult<Vec<String>> {
