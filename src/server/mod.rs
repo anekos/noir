@@ -96,14 +96,14 @@ fn update_favorite(
         if toggle && data.db.tag_exists(tag_to_add)? {
             let tags = [Tag::from_str(tag_to_add)?];
             data.db.delete_tags(&favorite.path, &tags, "noir")?;
-            return Ok(HttpResponse::Ok().body("OK"))
+            return Ok(HttpResponse::Ok().body(false))
         }
     }
 
     let tags = [Tag::from_str(tag_to_add)?];
     data.db.add_tags(&favorite.path, &tags, "noir")?;
 
-    Ok(HttpResponse::Ok().body("OK"))
+    Ok(HttpResponse::Ok().body(true))
 }
 
 async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
