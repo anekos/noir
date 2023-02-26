@@ -41,7 +41,8 @@ struct FileQuery {
 
 #[derive(Deserialize)]
 struct Favorite {
-    path: String
+    path: String,
+    toggle: Option<bool>
 }
 
 #[derive(Deserialize)]
@@ -78,6 +79,31 @@ struct ExpressionReplaceTag {
 struct SetTagRequest {
     path: String,
     tags: download::Tags,
+}
+
+fn update_favorite(
+    data: web::Data<Mutex<AppData>>,
+    favorite: web::Query<Favorite>,
+    tag_to_add: &'static str,
+    tag_to_delete: &'static str
+) -> AppResult<HttpResponse> {
+    let data = data.lock().expect("lock file");
+
+    let tags = [Tag::from_str(tag_to_delete)?];
+    data.db.delete_tags(&favorite.path, &tags, "noir")?;
+
+    if let Some(toggle) = favorite.toggle {
+        if toggle && data.db.tag_exists(tag_to_add)? {
+            let tags = [Tag::from_str(tag_to_add)?];
+            data.db.delete_tags(&favorite.path, &tags, "noir")?;
+            return Ok(HttpResponse::Ok().body("OK"))
+        }
+    }
+
+    let tags = [Tag::from_str(tag_to_add)?];
+    data.db.add_tags(&favorite.path, &tags, "noir")?;
+
+    Ok(HttpResponse::Ok().body("OK"))
 }
 
 async fn on_alias(data: web::Data<Mutex<AppData>>, name: web::Path<String>) -> AppResult<HttpResponse> {
@@ -135,12 +161,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
 }
 
 async fn on_dislike(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
-    let data = data.lock().expect("lock file");
-    let tags = [Tag::from_str("dislike")?];
-    data.db.add_tags(&favorite.path, &tags, "noir")?;
-    let tags = [Tag::from_str("like")?];
-    data.db.delete_tags(&favorite.path, &tags, "noir")?;
-    Ok(HttpResponse::Ok().body("OK"))
+    update_favorite(data, favorite, "dislike", "like")
 }
 
 async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> AppResult<HttpResponse> {
@@ -187,12 +208,7 @@ async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
 }
 
 async fn on_like(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
-    let data = data.lock().expect("lock file");
-    let tags = [Tag::from_str("like")?];
-    data.db.add_tags(&favorite.path, &tags, "noir")?;
-    let tags = [Tag::from_str("dislike")?];
-    data.db.delete_tags(&favorite.path, &tags, "noir")?;
-    Ok(HttpResponse::Ok().body("OK"))
+    update_favorite(data, favorite, "like", "dislike")
 }
 
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {

@@ -189,6 +189,11 @@ impl Database {
         Ok(())
     }
 
+    pub fn tag_exists(&self, tag: &str) -> AppResult<bool> {
+        let mut stmt = self.connection.prepare("SELECT 1 FROM tags WHERE tag = ?;")?;
+        Ok(stmt.exists(&[&tag as &dyn ToSql])?)
+    }
+
     pub fn tags(&self) -> AppResult<Vec<String>> {
         let mut stmt = self.connection.prepare("SELECT DISTINCT tag FROM tags ORDER BY length(tag)")?;
         let result: rusqlite::Result<Vec<String>> = stmt.query_map([], |row: &Row| row.get(0))?.collect();
