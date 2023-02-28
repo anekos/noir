@@ -85,12 +85,17 @@ fn update_favorite(
     data: web::Data<Mutex<AppData>>,
     favorite: web::Query<Favorite>,
     tag_to_add: &'static str,
-    tag_to_delete: &'static str
+    tags_to_delete: &'static[&'static str]
 ) -> AppResult<HttpResponse> {
     let data = data.lock().expect("lock file");
 
-    let tags = [Tag::from_str(tag_to_delete)?];
-    data.db.delete_tags(&favorite.path, &tags, "noir")?;
+    {
+        let mut tags = vec![];
+        for tag in tags_to_delete {
+            tags.push(Tag::from_str(tag)?);
+        }
+        data.db.delete_tags(&favorite.path, &tags, "noir")?;
+    }
 
     if let Some(toggle) = favorite.toggle {
         if toggle && data.db.tag_exists(&favorite.path, tag_to_add)? {
@@ -161,7 +166,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
 }
 
 async fn on_dislike(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
-    update_favorite(data, favorite, "dislike", "like")
+    update_favorite(data, favorite, "dislike", &["like", "neutral"])
 }
 
 async fn on_expression_replace_tag(query: web::Json<ExpressionReplaceTag>) -> AppResult<HttpResponse> {
@@ -208,7 +213,11 @@ async fn on_history(data: web::Data<Mutex<AppData>>) -> AppResult<HttpResponse> 
 }
 
 async fn on_like(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
-    update_favorite(data, favorite, "like", "dislike")
+    update_favorite(data, favorite, "like", &["dislike", "neutral"])
+}
+
+async fn on_neutral(data: web::Data<Mutex<AppData>>, favorite: web::Query<Favorite>) -> AppResult<HttpResponse> {
+    update_favorite(data, favorite, "neutral", &["like", "dislike"])
 }
 
 async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery>) -> AppResult<HttpResponse> {
@@ -283,6 +292,7 @@ pub async fn start(
             .service(web::resource("/download").route(web::post().to(on_download)))
             .service(web::resource("/like").route(web::post().to(on_like)))
             .service(web::resource("/dislike").route(web::post().to(on_dislike)))
+            .service(web::resource("/neutral").route(web::post().to(on_neutral)))
             .service(web::resource("/file").route(web::get().to(on_file)))
             .service(web::resource("/file/tags").route(web::get().to(on_file_tags)))
             .service(web::resource("/history").route(web::get().to(on_history)))
