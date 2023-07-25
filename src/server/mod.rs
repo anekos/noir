@@ -228,6 +228,7 @@ async fn on_search(data: web::Data<Mutex<AppData>>, query: web::Json<SearchQuery
     executing!(timer, "Expand: {}", &query.expression);
     let expander = Expander::generate(&data.db, &data.aliases)?;
     let expression = expander.expand_str(&query.expression)?;
+    info!("on_search: raw_expression={:?}", expression);
 
     executing!(timer, "Search from database: {}", &query.expression);
     let mut items: Vec<Meta> = vec![];
