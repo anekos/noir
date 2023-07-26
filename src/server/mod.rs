@@ -157,9 +157,11 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
         let _tx = data.db.transaction()?;
         data.db.queue(&request.url, &job_json)?;
 
-        data.dl_manager.download(job);
-
-        return Ok(HttpResponse::Ok().json(true))
+        if data.dl_manager.download(job) {
+            return Ok(HttpResponse::Ok().json(true))
+        } else {
+            return Ok(HttpResponse::InternalServerError().json("Failed to download: mpsc error"))
+        }
     }
 
     Err(AppError::Standard("Server option `download-to` is not given"))

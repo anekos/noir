@@ -79,8 +79,8 @@ impl Manager {
         Self {tx}
     }
 
-    pub fn download(&self, job: Job) {
-        self.tx.send(job).unwrap();
+    pub fn download(&self, job: Job) -> bool {
+        self.tx.send(job).is_ok()
     }
 }
 
