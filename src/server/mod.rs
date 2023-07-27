@@ -8,7 +8,7 @@ use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpResponse, HttpServer, http, web};
-use log::info;
+use log::{info, error};
 use logging_timer::{timer, executing, Level};
 use serde::{Deserialize, Serialize};
 
@@ -160,6 +160,7 @@ async fn on_download(data: web::Data<Mutex<AppData>>, request: web::Json<Downloa
         if data.dl_manager.download(job) {
             return Ok(HttpResponse::Ok().json(true))
         } else {
+            error!("Failed to download: mpsc error");
             return Ok(HttpResponse::InternalServerError().json("Failed to download: mpsc error"))
         }
     }
