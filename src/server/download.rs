@@ -146,7 +146,7 @@ fn write_record(db: &Database, job: &Job) -> AppResultU {
         for tag in &tags.items {
             _tags.push(Tag::from_str(&tag)?);
         }
-        let to = job.to.to_str().unwrap();
+        let to = job.to.to_str().expect("job.to.to_str() was failed");
         db.add_tags(to, &_tags, &tags.source)?;
     }
     Ok(())
